@@ -43,11 +43,8 @@ else
   echo dir exist
 fi
 
-CUDA_VISIBLE_DEVICES=3 python -m Metric.test_uncertainty \
---module_id=$MODULE_ID --res_dir=$RES_DIR \
---data_dir=$DATA_DIR --save_dir=$SAVE_DIR \
---train_batch_size=$TRAIN_BATCH_SIZE --test_batch_size=$TEST_BATCH_SIZE \
---max_size=$MAX_SIZE --ood_dir=$OOD_DIR
-
-# --train_batch_size=$TRAIN_BATCH_SIZE --test_batch_size=$TEST_BATCH_SIZE \
-# --max_size=$MAX_SIZE
+CUDA_VISIBLE_DEVICES=3 python Metric/test_uncertainty.py \
+--module_id $MODULE_ID --res_dir $RES_DIR \
+--data_dir $DATA_DIR --save_dir $SAVE_DIR \
+--train_batch_size $TRAIN_BATCH_SIZE --test_batch_size $TEST_BATCH_SIZE \
+--max_size $MAX_SIZE --ood_dir $OOD_DIR

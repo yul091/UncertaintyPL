@@ -37,18 +37,18 @@ tar -xzvf py150.tar.gz
 ### Step 2: Training a model
 #### Training a model from scratch
 To train a model from scratch:
-- Edit the file [program_tasks/code_summary/train.sh](program_tasks/code_summary/train.sh) and file [program_tasks/code_completion/train.sh](program_tasks/code_completion/train.sh) to point to the right preprocessed data and a specific model archiecture.
+- Edit the file [program_tasks/code_summary/train.sh](scripts/train_cs.sh) and file [program_tasks/code_completion/train.sh](scripts/train_cc.sh) to point to the right preprocessed data and a specific model archiecture.
 - Before training, you can edit the configuration hyper-parameters in these two files.
 - Run the two shell scripts:
 ```
 # code summary
-bash program_tasks/code_summary/train.sh
+bash scripts/train_cs.sh
 # code completion
-bash program_tasks/code_completion/train.sh
+bash scripts/train_cc.sh
 ```
 ### Step 3: Measuring the five uncertainty scores
-- Edit the file [Uncertainty_Eval/get_uncertainty.sh](Uncertainty_Eval/get_uncertainty.sh) to point to the right preprocessed data, a specific task and a specific model.
-- Run the script [Uncertainty_Eval/get_uncertainty.sh](Uncertainty_Eval/get_uncertainty.sh):
+- Edit the file [Uncertainty_Eval/get_uncertainty.sh](scripts/get_uncertainty.sh) to point to the right preprocessed data, a specific task and a specific model.
+- Run the script [Uncertainty_Eval/get_uncertainty.sh](scripts/get_uncertainty.sh):
 ```
 bash Uncertainty_Study/get_uncertainty.sh
 ```
