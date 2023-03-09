@@ -4,6 +4,7 @@ import pickle
 import random
 import numpy as np
 
+
 class CodeLoader(Dataset):
     def dict2list(self, token2index):
         # index2token (0 -> UNK, 1 -> PAD)

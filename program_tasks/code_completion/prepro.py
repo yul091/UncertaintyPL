@@ -6,6 +6,7 @@ from program_tasks.code_completion.util import create_tsv_file
 from collections import defaultdict
 import tokenize
 
+
 def parse_java(src_folder, dest_dir, dest_file_name, token_dict):
     token_dict[dest_file_name] = defaultdict(int)
 

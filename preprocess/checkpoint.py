@@ -87,7 +87,7 @@ class Checkpoint(object):
         Returns:
             checkpoint (Checkpoint): checkpoint object with fields copied from those stored on disk
         """
-        print(f'load checkpoint from {path}')
+        print(f'Loading checkpoint from: {path}')
         if torch.cuda.is_available():
             resume_checkpoint = torch.load(os.path.join(path, cls.TRAINER_STATE_NAME))
             model = torch.load(os.path.join(path, cls.MODEL_NAME))

@@ -1,18 +1,13 @@
-import gc
 import os
 import argparse
 import datetime
 import numpy as np
-import pickle
 import torch
 from torch import nn
-import torch.backends.cudnn as cudnn
 from tqdm import tqdm
 from preprocess.utils import set_random_seed
 from torch.utils.data import DataLoader
-
-
-from program_tasks.clone_detection.model import CloneModel
+from models.code_analysis.model_cd import CloneModel
 from program_tasks.clone_detection.vocab import build_vocab, tokensize_dataset
 
 

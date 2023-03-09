@@ -1,5 +1,5 @@
   
-from model.fashion import *
+from models.fashion import *
 import torchvision
 from torchvision import transforms
 import torch.nn as nn

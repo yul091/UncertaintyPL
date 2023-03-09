@@ -1,9 +1,8 @@
 from collections import Counter
-
 import pandas as pd
 import torch
-
-import program_tasks.code_completion.util as ut
+import torchwordemb
+from program_tasks.code_completion.util import _tokenize
 
 
 class VocabBuilder(object):
@@ -17,7 +16,7 @@ class VocabBuilder(object):
         self.word_to_index = {}
 
     @staticmethod
-    def count_from_file(path_file, tokenizer=ut._tokenize):
+    def count_from_file(path_file, tokenizer=_tokenize):
         """
         count word frequencies in a file.
         Args:

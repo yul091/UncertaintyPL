@@ -18,8 +18,8 @@ Code analysis mechanism:
 </p>
 
 ## Requirements
-- [python3](https://www.python.org/downloads/release/python-380/)
-- [PyTorch 1.9.0](https://pytorch.org/get-started/locally/)
+- [python3。8+](https://www.python.org/downloads/release/python-380/)
+- [PyTorch 1.13.0](https://pytorch.org/get-started/locally/)
 
 ## Quickstart
 ### Step 0: Cloning this repository
@@ -50,7 +50,7 @@ bash scripts/train_cc.sh
 - Edit the file [scripts/get_uncertainty.sh](scripts/get_uncertainty.sh) to point to the right preprocessed data, a specific task and a specific model.
 - Run the script [scripts/get_uncertainty.sh](scripts/get_uncertainty.sh):
 ```
-bash Uncertainty_Study/get_uncertainty.sh
+bash scripts/get_uncertainty.sh
 ```
 ### Step 4: Evaluation the effectiveness of the five uncertainty methods on both error/success prediction and in-/out-of-distribution detection:
 - Edit the file [Uncertainty_Eval/evaluation.py](Uncertainty_Eval/evaluation.py) to point to the target evaluation choice (error/success prediction or in-/out-of-distribution detection).

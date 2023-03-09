@@ -1,5 +1,5 @@
   
-from model.cifar_100 import *
+from models.cifar_100 import *
 import torchvision
 from torchvision import transforms
 import torch.nn as nn

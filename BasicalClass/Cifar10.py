@@ -1,4 +1,4 @@
-from model.cifar_10.vgg19 import VGG19
+from models.cifar_10.vgg19 import VGG19
 import torchvision
 from torchvision import transforms
 import torch.optim as optim

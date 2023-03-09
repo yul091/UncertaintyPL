@@ -2,9 +2,7 @@ from __future__ import print_function
 import torch
 import pandas as pd
 import numpy as np
-import random
-import program_tasks.code_completion.util as ut
-from torch.utils.data import DataLoader
+from program_tasks.code_completion.util import _tokenize
 
 
 class TextClassDataLoader(object):
@@ -21,7 +19,7 @@ class TextClassDataLoader(object):
 
         # read file
         df = pd.read_csv(path_file, delimiter='\t')
-        df['body'] = df['body'].apply(ut._tokenize)
+        df['body'] = df['body'].apply(_tokenize)
         self.old_samples = df['body'].copy()
         df['body'] = df['body'].apply(self.generate_indexifyer())
         self.samples = df.values.tolist()
@@ -136,7 +134,7 @@ class Word2vecLoader(object):
             size = min(len(df), max_size)
             df = df[:size]
 
-        df['body'] = df['body'].apply(ut._tokenize)
+        df['body'] = df['body'].apply(_tokenize)
         self.old_samples = df['body'].copy()
         df['body'] = df['body'].apply(self.generate_indexifyer())
         samples = df.values.tolist()

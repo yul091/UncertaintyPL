@@ -1,4 +1,6 @@
 from __future__ import print_function
+import sys
+sys.dont_write_bytecode = True
 import os
 import argparse
 import datetime
@@ -6,14 +8,13 @@ import numpy as np
 import torch
 from torch import nn
 from tqdm import tqdm
-# import torch.backends.cudnn as cudnn
 from preprocess.checkpoint import Checkpoint
+from transformers import RobertaConfig
 from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
-from program_tasks.code_completion.util import AverageMeter, accuracy
-from program_tasks.code_completion.util import adjust_learning_rate
-from program_tasks.code_completion.model import Word2vecPredict, CodeBertForClassification, BiLSTMForClassification
-from transformers import RobertaConfig
+from program_tasks.code_completion.util import AverageMeter, accuracy, adjust_learning_rate
+from models.code_analysis.model_cc import Word2vecPredict, CodeBertForClassification, BiLSTMForClassification
+
 
 
 def preprocess_data():

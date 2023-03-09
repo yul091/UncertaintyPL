@@ -43,17 +43,6 @@ class BasicUncertainty(nn.Module):
             common_ten2numpy(self.val_pred_y).reshape([-1]) == \
                 common_ten2numpy(self.val_y).reshape([-1])
         )
-        # handle ood data and oracle
-        if instance.ood_path is not None:
-            self.ood_y = instance.ood_y
-            self.ood_pred_pos, self.ood_pred_y = \
-                instance.ood_pred_pos, instance.ood_pred_y
-            self.ood_loader = instance.ood_loader
-            self.ood_num = len(self.ood_y)
-            self.ood_oracle = np.int32(
-                common_ten2numpy(self.ood_pred_y).reshape([-1]) == \
-                    common_ten2numpy(self.ood_y).reshape([-1])
-            )
         
         if self.test_path is not None:
             self.test_y = instance.test_y
@@ -65,7 +54,6 @@ class BasicUncertainty(nn.Module):
                 common_ten2numpy(self.test_pred_y).reshape([-1]) == \
                     common_ten2numpy(self.test_y).reshape([-1])
             )
-            
         else:
             self.test_y1, self.test_y2, self.test_y3 = \
                 instance.test_y1, instance.test_y2, instance.test_y3
@@ -108,44 +96,24 @@ class BasicUncertainty(nn.Module):
     def get_uncertainty(self):
         train_score = self._uncertainty_calculate(self.train_loader)
         val_score = self._uncertainty_calculate(self.val_loader)
-        if self.instance.ood_path is not None:
-            ood_score = self._uncertainty_calculate(self.ood_loader)
         if self.test_path is not None:
             test_score = self._uncertainty_calculate(self.test_loader)
-            if self.instance.ood_path is not None:
-                result = {
-                    'train': train_score,
-                    'val': val_score,
-                    'test': test_score,
-                    'ood': ood_score,
-                }
-            else:
-                result = {
-                    'train': train_score,
-                    'val': val_score,
-                    'test': test_score
-                }
+            result = {
+                'train': train_score,
+                'val': val_score,
+                'test': test_score
+            }
         else:
             test_score1 = self._uncertainty_calculate(self.test_loader1)
             test_score2 = self._uncertainty_calculate(self.test_loader2)
             test_score3 = self._uncertainty_calculate(self.test_loader3)
-            if self.instance.ood_path is not None:
-                result = {
-                    'train': train_score,
-                    'val': val_score,
-                    'test1': test_score1,
-                    'test2': test_score2,
-                    'test3': test_score3,
-                    'ood': ood_score
-                }
-            else:
-                result = {
-                    'train': train_score,
-                    'val': val_score,
-                    'test1': test_score1,
-                    'test2': test_score2,
-                    'test3': test_score3
-                }
+            result = {
+                'train': train_score,
+                'val': val_score,
+                'test1': test_score1,
+                'test2': test_score2,
+                'test3': test_score3
+            }
         return result
 
     def save_uncertaity_file(self, score_dict):
