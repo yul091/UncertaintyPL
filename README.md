@@ -18,8 +18,12 @@ Code analysis mechanism:
 </p>
 
 ## Requirements
-- [python3。8+](https://www.python.org/downloads/release/python-380/)
+- [python3.8+](https://www.python.org/downloads/release/python-380/)
 - [PyTorch 1.13.0](https://pytorch.org/get-started/locally/)
+- Libraries and dependencies:
+```
+pip install -r requirements.txt
+```
 
 ## Quickstart
 ### Step 0: Cloning this repository
