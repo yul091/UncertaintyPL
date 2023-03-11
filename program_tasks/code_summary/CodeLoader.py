@@ -37,7 +37,6 @@ class CodeLoader(Dataset):
                 return self.func2index['____UNKNOW____']
             else:
                 return label
-    
 
     def transferdata(self):
         for i, data in enumerate(self.dataset):
@@ -77,11 +76,13 @@ class CodeLoader(Dataset):
         with open(file_name, 'rb') as f:
             self.dataset = pickle.load(f)
             # random.shuffle(self.dataset)
-            
+         
         if max_size is not None:
             self.dataset = self.dataset[:max_size]
         if tk2num is not None:
             self.transferdata()
+            # code_context (List[list]): [[31, 786, 8], [31, 2114, 5890], [8, 196, 5890]]
+            # target (int): 6
         if idx is not None:
             self.dataset = list(np.array(self.dataset)[idx])
             

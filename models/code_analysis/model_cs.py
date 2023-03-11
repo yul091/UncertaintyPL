@@ -1,13 +1,20 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import List
 from preprocess.utils import count_parameters
 from transformers.models.roberta.modeling_roberta import (
     RobertaPreTrainedModel, 
     RobertaModel, 
-    RobertaAttention,
-    RobertaEmbeddings
+    RobertaConfig,
+    RobertaEmbeddings,
 )
+from transformers import (
+    T5Config,
+    T5PreTrainedModel,
+    T5Model,
+)
+from models.utils import count_parameters
 
 
 class Code2Vec(nn.Module):
@@ -29,6 +36,9 @@ class Code2Vec(nn.Module):
         self.a = nn.Parameter(torch.randn(1, embed_dim, 1))
         self.out = nn.Linear(embed_dim, output_dim)
         self.drop = nn.Dropout(dropout)
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
         self.sub_num = [1]
 
     def forward(self, starts, paths, ends, length):
@@ -94,7 +104,7 @@ class Code2Vec(nn.Module):
 
 class BiLSTM2Vec(nn.Module):
     def __init__(self, nodes_dim, paths_dim, embed_dim,
-            output_dim, embed_vec, dropout=0.1, padding_index=1, num_layers=2):
+                 output_dim, embed_vec, dropout=0.1, padding_index=1, num_layers=2):
         super().__init__()
         self.embedding_dim = embed_dim
 
@@ -111,6 +121,9 @@ class BiLSTM2Vec(nn.Module):
         )
         self.activation = nn.Tanh()
         self.linear = nn.Linear(3*embed_dim, output_dim)
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
         self.sub_num = [1]
 
     def forward(self, starts, paths, ends, length):
@@ -151,88 +164,188 @@ class BiLSTM2Vec(nn.Module):
 class CodeBertForClassification2(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config, dropout=0.1):
+    def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
         super().__init__(config[0])
 
         config_node, config_path, config_concat = config
-
         self.embedding_dim = config_node.hidden_size
         self.node_embedding = RobertaEmbeddings(config_node)
         self.path_embedding = RobertaEmbeddings(config_path)
-
-        self.W = nn.Parameter(torch.randn(1, config_node.hidden_size, 3 * config_node.hidden_size))
-        self.a = nn.Parameter(torch.randn(1, config_node.hidden_size, 1))
-        self.out = nn.Linear(config_node.hidden_size, config_node.num_labels)
+        self.roberta = RobertaModel(config_concat)
+        self.out = nn.Linear(config_concat.hidden_size, config_node.num_labels)
         self.drop = nn.Dropout(dropout)
-       
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
         self.sub_num = [1]
         self.init_weights()
             
     
-    def forward(
-        self,
-        starts=None,
-        paths=None,
-        ends=None,
-        length=None,
-    ):
+    def forward(self, starts, paths, ends, length):
+    
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        outputs_start = self.node_embedding(starts) # B X T X H
-        outputs_end = self.node_embedding(ends)
-        outputs_path = self.path_embedding(paths)
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c) 
+        pooled_output = outputs['pooler_output'] # B X 3H
+        pooled_output = self.drop(pooled_output) # B X 3H
+        out = self.out(pooled_output) # B X V
+        return out
 
-        W = self.W.repeat(len(starts), 1, 1) # B X H X 3H
-        c = torch.cat((outputs_start, outputs_path, outputs_end), dim=2)
-        c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3H X T
-        x = torch.tanh(torch.bmm(W, c))  # B X H X T
-        x = x.permute(0, 2, 1)
-        a = self.a.repeat(len(starts), 1, 1)  # B X H X 1
-        z = torch.bmm(x, a).squeeze(2)  # B X T
-        z = F.softmax(z, dim=1)   # B X T
-        z = z.unsqueeze(2)  # B X T X 1
-        x = x.permute(0, 2, 1)  # B X H X T
+        # W = self.W.repeat(len(starts), 1, 1) # B X H X 3H
+        # c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
+        # c = self.drop(c)
+        # c = c.permute(0, 2, 1)  # B X 3H X T
+        # x = torch.tanh(torch.bmm(W, c))  # B X H X T
+        # x = x.permute(0, 2, 1)
+        # a = self.a.repeat(len(starts), 1, 1)  # B X H X 1
+        # z = torch.bmm(x, a).squeeze(2)  # B X T
+        # z = F.softmax(z, dim=1)   # B X T
+        # z = z.unsqueeze(2)  # B X T X 1
+        # x = x.permute(0, 2, 1)  # B X H X T
 
-        v = torch.zeros(len(x), self.embedding_dim, device=starts.device)
-        for i in range(len(x)):
-            v[i] = torch.bmm(
-                x[i:i+1, :, :length[i]], z[i:i+1, :length[i], :]
-            ).squeeze(2)
-        #v = torch.bmm(x, z).squeeze(2)  # B X H
-        out = self.out(v)  # B X V
+        # v = torch.zeros(len(x), self.embedding_dim, device=starts.device)
+        # for i in range(len(x)):
+        #     v[i] = torch.bmm(
+        #         x[i:i+1, :, :length[i]], z[i:i+1, :length[i], :]
+        #     ).squeeze(2)
+        # # v = torch.bmm(x, z).squeeze(2)  # B X H
+        # out = self.out(v)  # B X V
+        # return out
+
+
+    def get_hidden(self, starts, paths, ends, length):
+
+        res = []
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c)
+        pooled_output = outputs['pooler_output'] # B X H
+        res.append(pooled_output.detach().cpu())
+        pooled_output = self.drop(pooled_output) # B X H
+        return res
+
+        # W = self.W.repeat(len(starts), 1, 1) # B X H X 3H
+        # c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
+        # c = self.drop(c)
+        # c = c.permute(0, 2, 1)  # B X 3H X T
+        # x = torch.tanh(torch.bmm(W, c))  # B X H X T
+        # x = x.permute(0, 2, 1)
+        # a = self.a.repeat(len(starts), 1, 1)  # B X H X 1
+        # z = torch.bmm(x, a).squeeze(2)  # B X T
+        # z = F.softmax(z, dim=1)   # B X T
+        # z = z.unsqueeze(2)  # B X T X 1
+        # x = x.permute(0, 2, 1)  # B X H X T
+
+        # v = torch.zeros(len(x), self.embedding_dim, device=starts.device)
+        # for i in range(len(x)):
+        #     v[i] = torch.bmm(
+        #         x[i:i+1, :, :length[i]], z[i:i+1, :length[i], :]
+        #     ).squeeze(2)
+        # # v = torch.bmm(x, z).squeeze(2)  # B X H
+        # res.append(v.detach().cpu())
+        # return res
+        
+    
+
+class CodeRoBertaForClassification(RobertaPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [r"position_ids"]
+    
+    def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
+        super().__init__(config[0])
+
+        config_node, config_path, config_concat = config
+        self.embedding_dim = config_node.hidden_size
+        self.node_embedding = RobertaEmbeddings(config_node)
+        self.path_embedding = RobertaEmbeddings(config_path)
+        self.roberta = RobertaModel(config_concat)
+        self.out = nn.Linear(config_concat.hidden_size, config_node.num_labels)
+        self.drop = nn.Dropout(dropout)
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
+        self.sub_num = [1]
+        self.init_weights()
+            
+    
+    def forward(self, starts, paths, ends, length):
+    
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
+        
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c) 
+        pooled_output = outputs['pooler_output'] # B X 3H
+        pooled_output = self.drop(pooled_output) # B X 3H
+        out = self.out(pooled_output) # B X V
         return out
 
 
-    def get_hidden(
-        self,
-        starts=None,
-        paths=None,
-        ends=None,
-        length=None,
-    ):
+    def get_hidden(self, starts, paths, ends, length):
+
         res = []
-        outputs_start = self.node_embedding(starts) # B X T X H
-        outputs_end = self.node_embedding(ends)
-        outputs_path = self.path_embedding(paths)
-
-        W = self.W.repeat(len(starts), 1, 1) # B X H X 3H
-        c = torch.cat((outputs_start, outputs_path, outputs_end), dim=2)
-        c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3H X T
-        x = torch.tanh(torch.bmm(W, c))  # B X H X T
-        x = x.permute(0, 2, 1)
-        a = self.a.repeat(len(starts), 1, 1)  # B X H X 1
-        z = torch.bmm(x, a).squeeze(2)  # B X T
-        z = F.softmax(z, dim=1)   # B X T
-        z = z.unsqueeze(2)  # B X T X 1
-        x = x.permute(0, 2, 1)  # B X H X T
-
-        v = torch.zeros(len(x), self.embedding_dim, device=starts.device)
-        for i in range(len(x)):
-            v[i] = torch.bmm(
-                x[i:i+1, :, :length[i]], z[i:i+1, :length[i], :]
-            ).squeeze(2)
-        #v = torch.bmm(x, z).squeeze(2)  # B X H
-        res.append(v.detach().cpu())
-
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c)
+        pooled_output = outputs['pooler_output'] # B X H
+        res.append(pooled_output.detach().cpu())
+        pooled_output = self.drop(pooled_output) # B X H
         return res
+
+    
+
+class GraphCodeBertForClassification(RobertaPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [r"position_ids"]
+    
+    def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
+        super().__init__(config[0])
+
+        config_node, config_path, config_concat = config
+        self.embedding_dim = config_node.hidden_size
+        self.node_embedding = RobertaEmbeddings(config_node)
+        self.path_embedding = RobertaEmbeddings(config_path)
+        self.roberta = RobertaModel(config_concat)
+        self.out = nn.Linear(config_concat.hidden_size, config_node.num_labels)
+        self.drop = nn.Dropout(dropout)
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
+        self.sub_num = [1]
+        self.init_weights()
+            
+    
+    def forward(self, starts, paths, ends, length):
+    
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
+        
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c) 
+        pooled_output = outputs['pooler_output'] # B X 3H
+        pooled_output = self.drop(pooled_output) # B X 3H
+        out = self.out(pooled_output) # B X V
+        return out
+
+
+    def get_hidden(self, starts, paths, ends, length):
+
+        res = []
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2) # B X T X 3H
+        outputs = self.roberta(inputs_embeds=c)
+        pooled_output = outputs['pooler_output'] # B X H
+        res.append(pooled_output.detach().cpu())
+        pooled_output = self.drop(pooled_output) # B X H
+        return res
+
+

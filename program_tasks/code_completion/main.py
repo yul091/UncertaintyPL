@@ -9,19 +9,25 @@ import torch
 from torch import nn
 from tqdm import tqdm
 from preprocess.checkpoint import Checkpoint
-from transformers import RobertaConfig
+from transformers import (
+    RobertaConfig,
+    GPT2Config,
+)
 from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
 from program_tasks.code_completion.util import AverageMeter, accuracy, adjust_learning_rate
-from models.code_analysis.model_cc import Word2vecPredict, CodeBertForClassification, BiLSTMForClassification
-
+from models.code_analysis.model_cc import (
+    Word2vecPredict, 
+    BiLSTMForClassification,
+    CodeBertForClassification, 
+    CodeGPTForClassification,
+)
 
 
 def preprocess_data():
     print("===> creating vocabs ...")
     train_path = args.train_data
     val_path = args.val_data
-    # test_path = args.test_data
     test_path1 = args.test_data1
     test_path2 = args.test_data2
     test_path3 = args.test_data3
@@ -52,7 +58,6 @@ def preprocess_data():
 
     train_loader = Word2vecLoader(train_path, d_word_index, batch_size=args.batch_size)
     val_loader = Word2vecLoader(val_path, d_word_index, batch_size=args.batch_size)
-    # test_loader = Word2vecLoader(test_path, d_word_index, batch_size=args.batch_size)
     val_loader1 = Word2vecLoader(test_path1, d_word_index, batch_size=args.batch_size)
     val_loader2 = Word2vecLoader(test_path2, d_word_index, batch_size=args.batch_size)
     val_loader3 = Word2vecLoader(test_path3, d_word_index, batch_size=args.batch_size)
@@ -127,6 +132,14 @@ def main(args):
                 use_cache=False, hidden_size=args.embedding_dim,
             )
             model = CodeBertForClassification(config)
+        elif args.model_type == 'codegpt':
+            config_class = GPT2Config
+            pretrained_model = 'microsoft/CodeGPT-small-java-adaptedGPT2'
+            config = config_class.from_pretrained(
+                pretrained_model, num_labels=len(d_word_index), 
+                use_cache=False, n_embd=args.embedding_dim,
+            )
+            model = CodeGPTForClassification(config)
         elif args.model_type == 'lstm':
             model = BiLSTMForClassification(vocab_size, embed, hidden_size=args.embedding_dim)
         else:
@@ -161,7 +174,6 @@ def main(args):
         res1 = test(test_loader1, model, 'test1')
         res2 = test(test_loader2, model, 'test2')
         res3 = test(test_loader3, model, 'test3')
-        # res_test = test(test_loader, model, criterion, 'test')
         res_val = test(val_loader, model, 'val')
         merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
         print(merge_res)
@@ -186,11 +198,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--epochs', default=10, type=int, metavar='N', help='number of total epochs to run')
     parser.add_argument('-b', '--batch-size', default=2048, type=int, metavar='N', help='mini-batch size')
-    parser.add_argument('--lr', '--learning-rate', default=0.005, type=float, metavar='LR',
+    parser.add_argument('--lr', '--learning-rate', default=0.001, type=float, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float, metavar='W', help='weight decay')
     parser.add_argument('--embedding_dim', default=120, type=int, metavar='N', help='embedding size')
-    parser.add_argument('--model_type', default='codebert', type=str, choices=['codebert', 'word2vec', 'lstm'], help='model architecture')
+    parser.add_argument('--model_type', default='codebert', type=str, 
+                        choices=['codebert', 'word2vec', 'lstm', 'codegpt'], 
+                        help='model architecture')
     parser.add_argument('--layers', default=2, type=int, metavar='N', help='number of rnn layers')
     parser.add_argument('--min_samples', default=5, type=int, metavar='N', help='min number of tokens')
     parser.add_argument('--cuda', default=True, action='store_true', help='use cuda')
@@ -201,7 +215,6 @@ if __name__ == '__main__':
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
     parser.add_argument('--train_data', type=str, default='program_tasks/code_completion/dataset/train.tsv',)
     parser.add_argument('--val_data', type=str, default='program_tasks/code_completion/dataset/val.tsv', help='model name')
-    # parser.add_argument('--test_data', type=str, default='program_tasks/code_completion/dataset/test.tsv', help='model name')
     parser.add_argument('--test_data1', type=str, default='program_tasks/code_completion/dataset/test1.tsv', help='model name')
     parser.add_argument('--test_data2', type=str, default='program_tasks/code_completion/dataset/test2.tsv', help='model name')
     parser.add_argument('--test_data3', type=str, default='program_tasks/code_completion/dataset/test3.tsv', help='model name')

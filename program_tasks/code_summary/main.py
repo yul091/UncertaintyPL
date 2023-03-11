@@ -10,12 +10,21 @@ import argparse
 import numpy as np
 import os
 from tqdm import tqdm
-from transformers import RobertaConfig
+from transformers import (
+    RobertaConfig, 
+    T5Config,
+)
 from torch.utils.data import DataLoader, sampler
 from preprocess.checkpoint import Checkpoint
 from preprocess.utils import set_random_seed
 from program_tasks.code_summary.CodeLoader import CodeLoader
-from models.code_analysis.model_cs import Code2Vec, CodeBertForClassification2, BiLSTM2Vec
+from models.code_analysis.model_cs import (
+    Code2Vec, 
+    BiLSTM2Vec,
+    CodeBertForClassification2, 
+    GraphCodeBertForClassification,
+    CodeRoBertaForClassification,
+)
 
 
 
@@ -82,8 +91,7 @@ def perpare_train(tk_path, embed_type, vec_path, embed_dim, out_dir):
     return token2index, path2index, func2index, embed, tk2num
 
 
-def train_model(model, train_loader, device,
-                criterian, optimizer):
+def train_model(model, train_loader, device, criterian, optimizer):
     model.train()
 
     for i, ((sts, paths, eds), y, length) in tqdm(enumerate(train_loader)):
@@ -164,27 +172,75 @@ def main(args):
             vocab_size=nodes_dim, 
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=embed_dim
+            hidden_size=embed_dim,
         )
         config_path = config_class.from_pretrained(
             pretrained_model,
             vocab_size=paths_dim, 
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=embed_dim
+            hidden_size=embed_dim,
         )
         config_concat = config_class.from_pretrained(
             pretrained_model,
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=3*embed_dim
+            hidden_size=3*embed_dim,
         )
         model = CodeBertForClassification2([config_node, config_path, config_concat])
+    elif args.model_type == 'graphcodebert':
+        pretrained_model = 'microsoft/graphcodebert-base'
+        config_class = RobertaConfig
+        config_node = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=nodes_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_path = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=paths_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_concat = config_class.from_pretrained(
+            pretrained_model,
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=3*embed_dim,
+        )
+        model = GraphCodeBertForClassification([config_node, config_path, config_concat])
+    elif args.model_type == 'coderoberta':
+        pretrained_model = 'huggingface/CodeBERTa-small-v1'
+        config_class = RobertaConfig
+        config_node = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=nodes_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_path = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=paths_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_concat = config_class.from_pretrained(
+            pretrained_model,
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=3*embed_dim,
+        )
+        model = GraphCodeBertForClassification([config_node, config_path, config_concat])
+        
     elif args.model_type == 'lstm':
         model = BiLSTM2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!
 
     criterian = nn.CrossEntropyLoss()  # loss
-
     # load ckpt if necessary
     if load_ckpt:
         latest_checkpoint_path = Checkpoint.get_latest_checkpoint(out_dir)
@@ -259,8 +315,9 @@ if __name__ == '__main__':
     parser.add_argument('--rnn', default='LSTM', choices=['LSTM', 'GRU'], help='rnn module type')
     parser.add_argument('--mean_seq', default=False, action='store_true', help='use mean of rnn output')
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
-    parser.add_argument('--model_type', type=str, default='codebert', choices=['codebert', 'code2vec', 'lstm'], help='model architecture')
-
+    parser.add_argument('--model_type', type=str, default='codebert', 
+                        choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'coderoberta'], 
+                        help='model architecture for method name prediction')
     parser.add_argument('--embed_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')
     parser.add_argument('--train_data', type=str, default='data/java_pkl_files/train.pkl')
