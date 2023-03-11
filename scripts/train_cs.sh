@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=coderoberta # coderoberta, lstm, code2vec, graphcodebert
+MODEL_TYPE=graphcodebert # coderoberta, code2vec, graphcodebert
 SHIFT_TYPE=different_author # different_project, different_author, different_time
 RES_DIR=results/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -12,7 +12,7 @@ fi
 
 DATA_DIR=dataset/code_summary/$SHIFT_TYPE/java_pkl
 EPOCHS=100
-BATCH=32 # 256 for code2vec, lstm, 32 for codebert, graphcodebert
+BATCH=256 # 256 for code2vec, lstm, 32 for codebert, graphcodebert
 LR=0.0001
 TK_PATH=$DATA_DIR/tk.pkl
 TRAIN_DATA=$DATA_DIR/train.pkl # file for training dataset
@@ -30,7 +30,7 @@ MAX_SIZE=20000 # number of training samples at each epoch
 # --max_size ${MAX_SIZE} \
 
 # echo $EXPERIMENT_NAME
-CUDA_VISIBLE_DEVICES=4 python -m program_tasks.code_summary.main \
+CUDA_VISIBLE_DEVICES=5 python -m program_tasks.code_summary.main \
   --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
   --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} --model_type ${MODEL_TYPE} \
   --train_data ${TRAIN_DATA} --val_data ${VAL_DATA} \

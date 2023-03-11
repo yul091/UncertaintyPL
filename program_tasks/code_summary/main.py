@@ -10,10 +10,7 @@ import argparse
 import numpy as np
 import os
 from tqdm import tqdm
-from transformers import (
-    RobertaConfig, 
-    T5Config,
-)
+from transformers import RobertaConfig
 from torch.utils.data import DataLoader, sampler
 from preprocess.checkpoint import Checkpoint
 from preprocess.utils import set_random_seed
@@ -21,9 +18,8 @@ from program_tasks.code_summary.CodeLoader import CodeLoader
 from models.code_analysis.model_cs import (
     Code2Vec, 
     BiLSTM2Vec,
-    CodeBertForClassification2, 
-    GraphCodeBertForClassification,
-    CodeRoBertaForClassification,
+    CodeRoBerta2Vec, 
+    GraphCodeBert2Vec,
 )
 
 
@@ -164,30 +160,6 @@ def main(args):
     index2func = dict2list(func2index)
     if args.model_type == 'code2vec':
         model = Code2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!
-    elif args.model_type == 'codebert':
-        pretrained_model = 'microsoft/codebert-base'
-        config_class = RobertaConfig
-        config_node = config_class.from_pretrained(
-            pretrained_model,
-            vocab_size=nodes_dim, 
-            num_labels=output_dim, 
-            use_cache=False, 
-            hidden_size=embed_dim,
-        )
-        config_path = config_class.from_pretrained(
-            pretrained_model,
-            vocab_size=paths_dim, 
-            num_labels=output_dim, 
-            use_cache=False, 
-            hidden_size=embed_dim,
-        )
-        config_concat = config_class.from_pretrained(
-            pretrained_model,
-            num_labels=output_dim, 
-            use_cache=False, 
-            hidden_size=3*embed_dim,
-        )
-        model = CodeBertForClassification2([config_node, config_path, config_concat])
     elif args.model_type == 'graphcodebert':
         pretrained_model = 'microsoft/graphcodebert-base'
         config_class = RobertaConfig
@@ -211,7 +183,7 @@ def main(args):
             use_cache=False, 
             hidden_size=3*embed_dim,
         )
-        model = GraphCodeBertForClassification([config_node, config_path, config_concat])
+        model = GraphCodeBert2Vec([config_node, config_path, config_concat])
     elif args.model_type == 'coderoberta':
         pretrained_model = 'huggingface/CodeBERTa-small-v1'
         config_class = RobertaConfig
@@ -235,7 +207,7 @@ def main(args):
             use_cache=False, 
             hidden_size=3*embed_dim,
         )
-        model = GraphCodeBertForClassification([config_node, config_path, config_concat])
+        model = CodeRoBerta2Vec([config_node, config_path, config_concat])
         
     elif args.model_type == 'lstm':
         model = BiLSTM2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!

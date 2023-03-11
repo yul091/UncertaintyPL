@@ -99,8 +99,6 @@ if __name__ == '__main__':
                         help="path to test data2 file", required=True)
     parser.add_argument("-ted3", "--test_data3", dest="test_data3_path",
                         help="path to test data3 file", required=True)
-    # parser.add_argument("-ted", "--test_data", dest="test_data_path",
-    #                     help="path to test data file", required=True)
     parser.add_argument("-vd", "--val_data", dest="val_data_path",
                         help="path to validation data file", required=True)
     parser.add_argument("-mc", "--max_contexts", dest="max_contexts", default=200,
@@ -148,7 +146,6 @@ if __name__ == '__main__':
             test_data1_path, 
             test_data2_path, 
             test_data3_path, 
-            # test_data_path,
             val_data_path, 
             train_data_path
         ], 
@@ -156,7 +153,6 @@ if __name__ == '__main__':
             'test1',
             'test2', 
             'test3', 
-            # 'test',
             'val', 
             'train'
         ]
