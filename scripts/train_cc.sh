@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_TYPE=lstm # codebert, codegpt, lstm, word2vec
-SHIFT_TYPE=different_author # different_project, different_author, different_time
+MODEL_TYPE=codebert # codebert, codegpt, lstm
+SHIFT_TYPE=different_project # different_project, different_author, different_time
 RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 
 if [ ! -d $RES_DIR ]; then
@@ -28,7 +28,7 @@ EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 echo $EXPERIMENT_NAME
 
 
-CUDA_VISIBLE_DEVICES=7 python -m program_tasks.code_completion.main \
+CUDA_VISIBLE_DEVICES=1 python -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
   --model_type $MODEL_TYPE \

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_TYPE=graphcodebert # coderoberta, code2vec, graphcodebert
-SHIFT_TYPE=different_author # different_project, different_author, different_time
+MODEL_TYPE=code2vec # coderoberta, code2vec, graphcodebert
+SHIFT_TYPE=different_time # different_project, different_author, different_time
 RES_DIR=results/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
 if [ ! -d $RES_DIR ]; then
@@ -30,7 +30,7 @@ MAX_SIZE=20000 # number of training samples at each epoch
 # --max_size ${MAX_SIZE} \
 
 # echo $EXPERIMENT_NAME
-CUDA_VISIBLE_DEVICES=5 python -m program_tasks.code_summary.main \
+CUDA_VISIBLE_DEVICES=0 python -m program_tasks.code_summary.main \
   --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
   --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} --model_type ${MODEL_TYPE} \
   --train_data ${TRAIN_DATA} --val_data ${VAL_DATA} \

@@ -1,6 +1,7 @@
 import sys
 sys.dont_write_bytecode = True
 import pickle
+import shutil
 from random import sample
 import torch
 import torch.nn as nn
@@ -250,6 +251,7 @@ def main(args):
     print('begin training experiment {} ...'.format(experiment_name))
     model.to(device)
     best_val_acc = 0
+    best_ckpt_dir = None
     total_st_time = datetime.datetime.now()
 
     for epoch in range(start_epoch, epochs+1):
@@ -263,10 +265,13 @@ def main(args):
         merge_res["epoch"] = epoch
         print(merge_res)
 
-        # save model checkpoint
+        # Save model checkpoint
         if val_res['val acc'] > best_val_acc:
+            if best_ckpt_dir is not None:
+                shutil.rmtree(best_ckpt_dir)
             Checkpoint(model, optimizer, epoch, merge_res).save(out_dir)
             best_val_acc = val_res['val acc']
+            best_ckpt_dir = Checkpoint.get_latest_checkpoint(out_dir)
 
     total_ed_time = datetime.datetime.now()
     print('training experiment {} finished! Total cost time: {}'.format(

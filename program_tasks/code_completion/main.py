@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 sys.dont_write_bytecode = True
 import os
+import shutil
 import argparse
 import datetime
 import numpy as np
@@ -17,7 +18,6 @@ from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
 from program_tasks.code_completion.util import AverageMeter, accuracy, adjust_learning_rate
 from models.code_analysis.model_cc import (
-    Word2vecPredict, 
     BiLSTMForClassification,
     CodeBertForClassification, 
     CodeGPTForClassification,
@@ -53,8 +53,8 @@ def preprocess_data():
             embed = torch.tensor(embed, dtype=torch.float).cuda()
         assert embed.size()[1] == args.embedding_dim
 
-    if not os.path.exists('program_tasks/code_completion/result'):
-        os.mkdir('program_tasks/code_completion/result')
+    if not os.path.exists(args.res_dir):
+        os.mkdir(args.res_dir)
 
     train_loader = Word2vecLoader(train_path, d_word_index, batch_size=args.batch_size)
     val_loader = Word2vecLoader(val_path, d_word_index, batch_size=args.batch_size)
@@ -122,8 +122,8 @@ def main(args):
         optimizer = resume_checkpoint.optimizer
         start_epoch = resume_checkpoint.epoch
     else:
-        if args.model_type == 'word2vec':
-            model = Word2vecPredict(vocab_size, embed, hidden_size=args.embedding_dim)
+        if args.model_type == 'lstm':
+            model = BiLSTMForClassification(vocab_size, embed, hidden_size=args.embedding_dim)
         elif args.model_type == 'codebert':
             config_class = RobertaConfig
             pretrained_model = 'microsoft/codebert-base'
@@ -140,8 +140,6 @@ def main(args):
                 use_cache=False, n_embd=args.embedding_dim,
             )
             model = CodeGPTForClassification(config)
-        elif args.model_type == 'lstm':
-            model = BiLSTMForClassification(vocab_size, embed, hidden_size=args.embedding_dim)
         else:
             raise TypeError('Undefined Model Type!')
         
@@ -156,10 +154,11 @@ def main(args):
     model = model.cuda()
     criterion = nn.CrossEntropyLoss()
 
-    print('training dataset size: {}'.format(train_loader.n_samples))
-    t1 = datetime.datetime.now()
+    print(f'Training dataset size: {train_loader.n_samples}')
     time_cost = None
     best_val_acc = 0
+    best_ckpt_dir = None
+    t1 = datetime.datetime.now()
 
     for epoch in range(start_epoch, args.epochs + 1):
         st = datetime.datetime.now()
@@ -178,19 +177,17 @@ def main(args):
         merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
         print(merge_res)
 
-        # save model checkpoint
+        # Save best model checkpoint
         if res_val['val acc'] > best_val_acc:
+            if best_ckpt_dir is not None:
+                shutil.rmtree(best_ckpt_dir)
             Checkpoint(model, optimizer, epoch, merge_res).save(args.res_dir)
             best_val_acc = res_val['val acc']
+            best_ckpt_dir = Checkpoint.get_latest_checkpoint(args.res_dir)
 
-
-    print('time cost', time_cost / args.epochs)
+    print('Avg time cost', time_cost / args.epochs)
     t2 = datetime.datetime.now()
-
-    weight_save_model = os.path.join('program_tasks/code_completion', args.weight_name)
-    torch.save(model.encoder.weight, weight_save_model)
-    # print('result is ', res1, res2, res3)
-    print('cost time', t2 - t1)
+    print('Total time cost', t2 - t1)
 
 
 
@@ -203,7 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float, metavar='W', help='weight decay')
     parser.add_argument('--embedding_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--model_type', default='codebert', type=str, 
-                        choices=['codebert', 'word2vec', 'lstm', 'codegpt'], 
+                        choices=['codebert', 'lstm', 'codegpt'], 
                         help='model architecture')
     parser.add_argument('--layers', default=2, type=int, metavar='N', help='number of rnn layers')
     parser.add_argument('--min_samples', default=5, type=int, metavar='N', help='min number of tokens')
@@ -213,14 +210,14 @@ if __name__ == '__main__':
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
     parser.add_argument('--weight_name', type=str, default='1', help='model name')
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
-    parser.add_argument('--train_data', type=str, default='program_tasks/code_completion/dataset/train.tsv',)
-    parser.add_argument('--val_data', type=str, default='program_tasks/code_completion/dataset/val.tsv', help='model name')
-    parser.add_argument('--test_data1', type=str, default='program_tasks/code_completion/dataset/test1.tsv', help='model name')
-    parser.add_argument('--test_data2', type=str, default='program_tasks/code_completion/dataset/test2.tsv', help='model name')
-    parser.add_argument('--test_data3', type=str, default='program_tasks/code_completion/dataset/test3.tsv', help='model name')
+    parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
+    parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/val.tsv', help='model name')
+    parser.add_argument('--test_data1', type=str, default='data/code_completion/different_time/test1.tsv', help='model name')
+    parser.add_argument('--test_data2', type=str, default='data/code_completion/different_time/test2.tsv', help='model name')
+    parser.add_argument('--test_data3', type=str, default='data/code_completion/different_time/test3.tsv', help='model name')
     parser.add_argument('--embedding_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code_completion')
-    parser.add_argument('--res_dir', type=str, default='program_tasks/code_completion/result/')
+    parser.add_argument('--res_dir', type=str, default='results/code_completion')
     parser.add_argument('--load_ckpt', default=False, action='store_true', help='use pretrained model')
     args = parser.parse_args()
 
