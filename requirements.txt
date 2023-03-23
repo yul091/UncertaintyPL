@@ -1,6 +1,6 @@
 tensorflow
-pytorch
+# pytorch
 javalang
 gdown
-transformers==4.9.0
-torchwordemb
+transformers
+# torchwordemb

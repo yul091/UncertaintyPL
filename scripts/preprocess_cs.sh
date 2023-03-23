@@ -39,7 +39,7 @@ if [ -d $TRG_DIR ]
 then
   echo "Directory ${TRG_DIR} exists."
 else
-  mkdir $TRG_DIR
+  mkdir -p $TRG_DIR
 fi
 
 MAX_CONTEXTS=200
@@ -58,8 +58,8 @@ VAL_DATA_FILE=${DATASET_NAME}.val.raw.txt
 TEST_DATA_FILE=${DATASET_NAME}.test.raw.txt
 EXTRACTOR_JAR=JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar
 
-mkdir -p data
-mkdir -p data/${DATASET_NAME}
+# mkdir -p data
+# mkdir -p data/${DATASET_NAME}
 
 # echo "Extracting paths from test set1 ..."
 # ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR1} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE1}
@@ -80,9 +80,9 @@ echo "Extracting paths from training set..."
 ${PYTHON} JavaExtractor/extract.py --dir ${TRAIN_DIR} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} | shuf > ${TRAIN_DATA_FILE}
 echo "Finished extracting paths from training set"
 
-TARGET_HISTOGRAM_FILE=data/${DATASET_NAME}/${DATASET_NAME}.histo.tgt.c2v
-ORIGIN_HISTOGRAM_FILE=data/${DATASET_NAME}/${DATASET_NAME}.histo.ori.c2v
-PATH_HISTOGRAM_FILE=data/${DATASET_NAME}/${DATASET_NAME}.histo.path.c2v
+TARGET_HISTOGRAM_FILE=${TRG_DIR}/${DATASET_NAME}.histo.tgt.c2v
+ORIGIN_HISTOGRAM_FILE=${TRG_DIR}/${DATASET_NAME}.histo.ori.c2v
+PATH_HISTOGRAM_FILE=${TRG_DIR}/${DATASET_NAME}.histo.path.c2v
 
 echo "Creating histograms from the training data"
 cat ${TRAIN_DATA_FILE} | cut -d' ' -f1 | awk '{n[$0]++} END {for (i in n) print i,n[i]}' > ${TARGET_HISTOGRAM_FILE}

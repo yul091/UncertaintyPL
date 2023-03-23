@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # data_dir = 'java_data/different_project/data'
     # data_type = ['train', 'val', 'test1', 'test2', 'test3']
     data_dir = 'dataset/case_study'
-    data_type = ['train', 'val', 'test1']
+    data_type = ['train', 'val', 'test']
     java_dict = {
         k + '.txt': os.path.join(data_dir, k) # 'train': data_dir/train/
         for k in data_type
