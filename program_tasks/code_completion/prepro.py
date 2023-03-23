@@ -1,4 +1,5 @@
 import os
+import chardet
 import javalang
 from tqdm import tqdm
 import torch
@@ -17,8 +18,12 @@ def parse_java(src_folder, dest_dir, dest_file_name, token_dict):
                 print('tokenizing java code in {} ...'.format(subfolder))
                 for file_path in tqdm(os.listdir(subfolder)):
                     if file_path.endswith(".java"):
-                        file = open(os.path.join(subfolder, file_path), 'r')
-                        file_string = ' '.join(file.read().splitlines()) # read in oneline
+                        try:
+                            file = open(os.path.join(subfolder, file_path), 'r', encoding='utf-8')
+                            file_string = ' '.join(file.read().splitlines()) # read in oneline
+                        except:
+                            file = open(os.path.join(subfolder, file_path), 'r', encoding='iso-8859-1')
+                            file_string = ' '.join(file.read().splitlines()) # read in oneline
                         tokens = list(javalang.tokenizer.tokenize(file_string)) # ast java parse
                         # print('token list: \n', [x.value for x in tokens])
                         for tok in tokens:

@@ -83,7 +83,7 @@ if __name__ == '__main__':
         # 'java_project3': 'java_pkl3',
         # 'java_project': 'java_pkl'
         # 'python_files': 'python_pkl'
-        'case_study': 'java_pkl'
+        'case_study': 'case_study'
     }
     for FILENAME, GEN_FILE in file_dict.items():
         # TRG_DIR = 'java_data/different_author/elasticsearch'
