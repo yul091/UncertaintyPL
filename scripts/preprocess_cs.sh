@@ -58,9 +58,6 @@ VAL_DATA_FILE=${DATASET_NAME}.val.raw.txt
 TEST_DATA_FILE=${DATASET_NAME}.test.raw.txt
 EXTRACTOR_JAR=JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar
 
-# mkdir -p data
-# mkdir -p data/${DATASET_NAME}
-
 # echo "Extracting paths from test set1 ..."
 # ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR1} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE1}
 # echo "Finished extracting paths from test set1"

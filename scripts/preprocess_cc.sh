@@ -1,1 +1,1 @@
-python program_tasks/code_completion/prepro.py
+python -m program_tasks.code_completion.prepro

@@ -1,13 +1,14 @@
 import pickle
 import json
 import os
+from tqdm import tqdm
 from preprocess.utils import BASEDICT
 
 
 def build_dict(dataset):
     base_dict = BASEDICT.copy()
     token2index, path2index, func2index = base_dict.copy(), base_dict.copy(), base_dict.copy()
-    for i, data in enumerate(dataset):
+    for i, data in tqdm(enumerate(dataset)):
         data = data.strip().lower()
         target, code_context = data.split()[0], data.split()[1:]
         target = target.split('|')
@@ -81,13 +82,14 @@ if __name__ == '__main__':
         # 'java_project2': 'java_pkl2',
         # 'java_project3': 'java_pkl3',
         # 'java_project': 'java_pkl'
-        'python_files': 'python_pkl'
+        # 'python_files': 'python_pkl'
+        'case_study': 'java_pkl'
     }
     for FILENAME, GEN_FILE in file_dict.items():
         # TRG_DIR = 'java_data/different_author/elasticsearch'
         # TRG_DIR = 'java_data/different_time'
         # TRG_DIR = 'java_data/different_project'
-        TRG_DIR = '' 
+        TRG_DIR = 'dataset/code_summary' 
         DIR = os.path.join(TRG_DIR, GEN_FILE)
         DATA_DIR = os.path.join(TRG_DIR, FILENAME)
-        main(DATA_DIR, DIR, suffix='.c2s')
+        main(DATA_DIR, DIR, suffix='.c2v')
