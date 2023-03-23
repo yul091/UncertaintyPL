@@ -138,9 +138,10 @@ def main(args):
     tk_path = args.tk_path
     train_path = args.train_data
     val_path = args.val_data
-    test_path1 = args.test_data1
-    test_path2 = args.test_data2
-    test_path3 = args.test_data3
+    test_path = args.test_data
+    # test_path1 = args.test_data1
+    # test_path2 = args.test_data2
+    # test_path3 = args.test_data3
     embed_dim = args.embed_dim
     embed_type = args.embed_type
     vec_path = args.embed_path
@@ -232,20 +233,24 @@ def main(args):
     # Build test loader
     train_dataset = CodeLoader(train_path, max_size, token2index, tk2num)
     val_dataset = CodeLoader(val_path, max_size, token2index, tk2num)
-    test_dataset1 = CodeLoader(test_path1, max_size, token2index, tk2num)
-    test_dataset2 = CodeLoader(test_path2, max_size, token2index, tk2num)
-    test_dataset3 = CodeLoader(test_path3, max_size, token2index, tk2num)
-    
-    print('train data {}, val data {}, test data1 {}, test data2 {}, test data3 {}'.format(
-        len(train_dataset), len(val_dataset), len(test_dataset1), 
-        len(test_dataset2), len(test_dataset3),
+    test_dataset = CodeLoader(test_path, max_size, token2index, tk2num)
+    print('train data {}, val data {}, test data {}'.format(
+        len(train_dataset), len(val_dataset), len(test_dataset),
     ))
+    # test_dataset1 = CodeLoader(test_path1, max_size, token2index, tk2num)
+    # test_dataset2 = CodeLoader(test_path2, max_size, token2index, tk2num)
+    # test_dataset3 = CodeLoader(test_path3, max_size, token2index, tk2num)
+    # print('train data {}, val data {}, test data1 {}, test data2 {}, test data3 {}'.format(
+    #     len(train_dataset), len(val_dataset), len(test_dataset1), 
+    #     len(test_dataset2), len(test_dataset3),
+    # ))
 
     train_loader = DataLoader(train_dataset, batch_size=train_batch, collate_fn=my_collate)
     val_loader = DataLoader(val_dataset, batch_size=train_batch, collate_fn=my_collate)
-    test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
-    test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
-    test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
+    test_loader = DataLoader(test_dataset, batch_size=train_batch, collate_fn=my_collate)
+    # test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
+    # test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
+    # test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
 
     # training
     print('begin training experiment {} ...'.format(experiment_name))
@@ -258,10 +263,12 @@ def main(args):
         # print('max size: {}'.format(max_size))
         train_model(model, train_loader, device, criterian, optimizer)
         val_res = test_model(val_loader, model, device, index2func, 'val')
-        test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
-        test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
-        test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
-        merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
+        test_res = test_model(test_loader, model, device, index2func, 'test')
+        # test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
+        # test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
+        # test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
+        merge_res = {**val_res, **test_res} # merge all the test results
+        # merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
         merge_res["epoch"] = epoch
         print(merge_res)
 
@@ -299,9 +306,10 @@ if __name__ == '__main__':
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')
     parser.add_argument('--train_data', type=str, default='data/java_pkl_files/train.pkl')
     parser.add_argument('--val_data', type=str, default='data/java_pkl_files/val.pkl')
-    parser.add_argument('--test_data1', type=str, default='data/java_pkl_files/test1.pkl')
-    parser.add_argument('--test_data2', type=str, default='data/java_pkl_files/test2.pkl')
-    parser.add_argument('--test_data3', type=str, default='data/java_pkl_files/test3.pkl')
+    parser.add_argument('--test_data', type=str, default='data/java_pkl_files/test.pkl')
+    # parser.add_argument('--test_data1', type=str, default='data/java_pkl_files/test1.pkl')
+    # parser.add_argument('--test_data2', type=str, default='data/java_pkl_files/test2.pkl')
+    # parser.add_argument('--test_data3', type=str, default='data/java_pkl_files/test3.pkl')
     parser.add_argument('--tk_path', type=str, default='data/java_pkl_files/tk.pkl')
     parser.add_argument('--embed_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code summary')
