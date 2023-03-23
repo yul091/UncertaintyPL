@@ -81,14 +81,16 @@ def parse_python(src_folder, dest_dir, dest_file_name, token_dict):
 if __name__ == '__main__':
     ###############################################################################
     # Handle java files
-    data_dir = 'java_data/different_project/data'
-    data_type = ['train', 'val', 'test1', 'test2', 'test3']
+    # data_dir = 'java_data/different_project/data'
+    # data_type = ['train', 'val', 'test1', 'test2', 'test3']
+    data_dir = 'dataset/case_study'
+    data_type = ['train', 'val', 'test1']
     java_dict = {
         k + '.txt': os.path.join(data_dir, k) # 'train': data_dir/train/
         for k in data_type
     }
 
-    dest_dir = "data/code_completion/different_time/java_project"
+    dest_dir = "dataset/code_completion/case_study"
     token_dict = {} # save token hist in dict
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)

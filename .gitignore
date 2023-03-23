@@ -1,4 +1,5 @@
 dataset/*
+data/*
 checkpoints/*
 results/*
 Uncertainty_Results/*
