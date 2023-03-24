@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+import argparse
 from sklearn.metrics import roc_curve, auc, brier_score_loss, precision_recall_curve
 
 
@@ -310,28 +311,27 @@ class Uncertainty_Eval():
 
 
 if __name__ == "__main__":
+    
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--shift_type', '-s', type=str, default='different_time', 
+                        choices=['different_project', 'different_author', 'different_time'],
+                        help='Type of code data shift.')
+    parser.add_argument('--model', '-m', type=str, default='code2vec', help='Model name.')
+    parser.add_argument('--task', '-t', type=str, default='code_summary', 
+                        choices=['code_summary', 'code_completion'], help='Task name.')
+    args = parser.parse_args()
 
-    SHIFT = 'different_time/java_project'
-    # SHIFT = 'different_project/java_project'
-    # SHIFT = 'different_author/elasticsearch'
-    # MODEL = 'code2vec'
-    MODEL = 'word2vec'
-    # MODEL = 'lstm'
-    # MODEL = 'codebert'
-    # TASK = 'CodeSummary_Module'
-    TASK = 'CodeCompletion_Module'
-
+    SHIFT = args.shift_type # different_project, different_author, different_time
+    MODEL = args.model # code2vec, coderoberta, graphcodebert, lstm, codebert, codegpt
+    TASK = 'CodeSummary_Module' if args.task == 'code_summary' else 'CodeCompletion_Module'
 
     eval_m = Uncertainty_Eval(
-        res_dir='Uncertainty_Results_new/{}/{}'.format(SHIFT, MODEL),
+        res_dir='Uncertainty_Results/{}/{}'.format(SHIFT, MODEL),
         save_dir='Uncertainty_Eval/{}/{}'.format(SHIFT, MODEL), 
         task=TASK,
         shift=True,
-        # ood=False, # True if ood is evaluated in Eval_res
-        ood=True,
+        ood=False, # True if ood is evaluated in Eval_res
     )
     # error/success prediction
-    # eval_m.evaluation()
-
-    # ood detection
-    eval_m.ood_detect()
+    eval_m.evaluation()
