@@ -1,13 +1,21 @@
-import torch
+import sys
+sys.dont_write_bytecode = True
 import os
+import torch
 import numpy as np
-from BasicalClass.common_function import *
-from java_dataset.se_tasks.code_summary.scripts.Code2VecModule import Code2Vec
-from java_dataset.se_tasks.code_summary.scripts.CodeLoader import CodeLoader
-from java_dataset.se_tasks.code_summary.scripts.main import perpare_train, my_collate
-from java_dataset.checkpoint import Checkpoint
 from tqdm import tqdm
 from collections import defaultdict
+from BasicalClass.common_function import *
+from models.code_analysis.model_cs import Code2Vec
+from program_tasks.code_summary.CodeLoader import CodeLoader
+from program_tasks.code_summary.main import (
+    perpare_train, 
+    my_collate, 
+    test_model, 
+    dict2list,
+)
+from preprocess.checkpoint import Checkpoint
+
 
 class InputVal(object):
     """

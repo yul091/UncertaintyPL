@@ -1,13 +1,13 @@
 
 SHIFT=different_time # different_project, different_time, different_author
-TASK=code_summary # code_summary, code_completion
-MODEL=code2vec # code2vec, coderoberta, graphcodebert, lstm, codebert, codegpt
+TASK=code_completion # code_summary, code_completion
+MODEL=codegpt # code2vec, coderoberta, graphcodebert, lstm, codebert, codegpt
 DATADIR=dataset
 MODELDIR=results
 METRICDIR=Uncertainty_Results
 OUTDIR=Uncertainty_Eval/filter
 
-CUDA_VISIBLE_DEVICES=1 python filter.py \
+CUDA_VISIBLE_DEVICES=2 python filter.py \
     --shift_type $SHIFT \
     --task $TASK \
     --model $MODEL \
