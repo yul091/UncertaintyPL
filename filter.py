@@ -1,21 +1,36 @@
+import sys
+sys.dont_write_bytecode = True
 import os
 import numpy as np
-from torch.cuda import is_available
+from tqdm import tqdm
 import torch
-import torch.nn as nn
 from BasicalClass.common_function import *
 from program_tasks.code_summary.CodeLoader import CodeLoader
-from program_tasks.code_summary.main import perpare_train, my_collate, test_model, dict2list
+from program_tasks.code_summary.main import (
+    perpare_train, 
+    my_collate, 
+    test_model, 
+    dict2list,
+)
 from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
 from program_tasks.code_completion.main import test
 from preprocess.checkpoint import Checkpoint
-from tqdm import tqdm
 
 
 class Filter:
-    def __init__(self, res_dir, data_dir, metric_dir, save_dir, 
-                 device, module_id, shift, max_size, batch_size):
+    def __init__(
+        self, 
+        res_dir: str, 
+        data_dir: str, 
+        metric_dir: str, 
+        save_dir: str, 
+        device: torch.device, 
+        module_id: int, 
+        shift: str, 
+        max_size: int, 
+        batch_size: int,
+    ):
 
         self.res_dir = res_dir
         self.data_dir = data_dir
@@ -233,42 +248,54 @@ class Filter:
 
 
 if __name__ == "__main__":
-
-    shift_type = 'different_time'
-    module_id = 0 # code summary
-    # module_id = 1 # code completion
-    # model_type = 'code2vec'
-    # model_type = 'lstm'
-    model_type = 'codebert'
-    # model_type = 'word2vec'
-    uncertainty_dir = 'Uncertainty_Results_new'
-
-    task = 'code_summary' if module_id == 0 else 'code_completion'
-    module_dir = 'CodeSummary_Module' if module_id == 0 else 'CodeCompletion_Module'
-    if shift_type == 'different_author':
-        if module_id == 0:
-            res_dir = f'program_tasks/{task}/result/{shift_type}/elasticsearch/java_project/{model_type}'
-            data_dir = f'java_data/{shift_type}/elasticsearch/java_pkl'
-        else:
-            res_dir = f'program_tasks/{task}/result/{shift_type}/elasticsearch/{model_type}'
-            data_dir = f'program_tasks/{task}/dataset/{shift_type}/elasticsearch'
-        metric_dir = f'{uncertainty_dir}/{shift_type}/elasticsearch/{model_type}/{module_dir}'
-    else:
-        res_dir = f'program_tasks/{task}/result/{shift_type}/java_project/{model_type}'
-        if module_id == 0:
-            data_dir = f'java_data/{shift_type}/java_pkl'
-        else:
-            data_dir = f'program_tasks/{task}/dataset/{shift_type}/java_project'
-        metric_dir = f'{uncertainty_dir}/{shift_type}/java_project/{model_type}/{module_dir}'
     
-    save_dir = f'Uncertainty_Eval/filter/{shift_type}/{model_type}/{module_dir}'
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--shift_type', type=str, default='different_time',
+                        choices=['different_time', 'different_author', 'different_project'],
+                        help='Type of code distribution shift')
+    parser.add_argument('--task', type=str, default='code_summary',
+                        choices=['code_summary', 'code_completion'],
+                        help='Type of program task')
+    parser.add_argument('--model', type=str, default='codebert')
+    parser.add_argument('--data_dir', type=str, default='dataset')
+    parser.add_argument('--model_dir', type=str, default='results')
+    parser.add_argument('--uncertainty_dir', type=str, default='Uncertainty_Results',
+                        help='Directory where the uncertainty results are stored')
+    parser.add_argument('--out_dir', type=str, default='Uncertainty_Eval/filter',
+                        help='Directory where the filtering results are stored')
+    
+    args = parser.parse_args()
+    task = args.task
+    module_id = 0 if task == 'code_summary' else 1
+    shift_type = args.shift_type
+    model_type = args.model
+    
+    dataset_dir = args.data_dir
+    model_dir = args.model_dir
+    uncertainty_dir = args.uncertainty_dir
+    out_dir = args.out_dir
+    module = 'CodeSummary_Module' if task == 'code_summary' else 'CodeCompletion_Module'
+    
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    
+    res_dir = f'{model_dir}/{task}/{shift_type}/{model_type}'
+    metric_dir = f'{uncertainty_dir}/{shift_type}/{model_type}/{module}'
+    save_dir = f'{out_dir}/{shift_type}/{model_type}/{module}'
+    if task == 'code_summary':
+        data_dir = f'{dataset_dir}/{task}/{shift_type}/java_pkl'
+    else:
+        data_dir = f'{dataset_dir}/{task}/{shift_type}/java_project'
+    
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
     shift = True
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    max_size = None if module_id == 0 else 200
-    batch_size = 256 if module_id == 0 else 64
+    max_size = None if task == 'code_summary' else 200
+    batch_size = 256 if task == 'code_summary' else 64
 
     filter = Filter(
         res_dir=res_dir, data_dir=data_dir, metric_dir=metric_dir,
