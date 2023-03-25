@@ -5,7 +5,7 @@ MODEL=codegpt # code2vec, coderoberta, graphcodebert, lstm, codebert, codegpt
 DATADIR=dataset
 MODELDIR=results
 METRICDIR=Uncertainty_Results
-OUTDIR=Uncertainty_Eval/filter
+OUTDIR=Uncertainty_Eval/input_validation
 
 CUDA_VISIBLE_DEVICES=2 python filter.py \
     --shift_type $SHIFT \
@@ -14,4 +14,5 @@ CUDA_VISIBLE_DEVICES=2 python filter.py \
     --data_dir $DATADIR \
     --model_dir $MODELDIR \
     --uncertainty_dir $METRICDIR \
-    --out_dir $OUTDIR
+    --out_dir $OUTDIR \
+    --strategy threshold

@@ -3,6 +3,7 @@ sys.dont_write_bytecode = True
 import os
 import numpy as np
 from tqdm import tqdm
+from collections import defaultdict
 import torch
 from BasicalClass.common_function import *
 from program_tasks.code_summary.CodeLoader import CodeLoader
@@ -16,6 +17,7 @@ from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
 from program_tasks.code_completion.main import test
 from preprocess.checkpoint import Checkpoint
+from sklearn.metrics import roc_curve, auc, brier_score_loss, precision_recall_curve
 
 
 class Filter:
@@ -50,6 +52,7 @@ class Filter:
         self.pv = torch.load(os.path.join(metric_dir, 'PVScore.res'))
         self.dropout = torch.load(os.path.join(metric_dir, 'ModelActivateDropout.res'))
         self.mutation = torch.load(os.path.join(metric_dir, 'Mutation.res'))
+        self.truth = torch.load(os.path.join(metric_dir, 'truth.res'))
         self.batch_size = batch_size
 
         if module_id == 0: # code summary
@@ -121,9 +124,250 @@ class Filter:
                 if type(embed) is np.ndarray:
                     embed = torch.tensor(embed, dtype=torch.float).cuda()
                 assert embed.size()[1] == self.embed_dim
+                
+                
+    def common_get_auc(self, y_test, y_score):
+        # calculate true positive & false positive
+        try:
+            fpr, tpr, threshold = roc_curve(y_test, y_score)  
+            roc_auc = auc(fpr, tpr)  # calculate AUC
+            return roc_auc 
+        except:
+            return 0.0
+
+    def common_get_aupr(self, y_test, y_score):
+        try:
+            precision, recall, thresholds = precision_recall_curve(y_test, y_score)
+            area = auc(recall, precision)
+            return area
+        except:
+            return 0.0
+
+    def common_get_brier(self, y_test, y_score):
+        try:
+            brier = brier_score_loss(y_test, y_score)
+            return brier
+        except:
+            return 1.0
+        
+        
+    def get_filtered_stats(
+        self, 
+        UE_scores: dict,
+        UE_name: str,  
+        testset: str, 
+        threshold: float, 
+        data_path: str, 
+        original_size: int,
+        res: dict,
+    ):
+        if UE_name in ['mutation', 'dissector']:
+            scores = UE_scores[testset][0]
+        else:
+            scores = UE_scores[testset]
+        idx = np.where(scores >= threshold)[0]
+        coverage = len(idx) / original_size
+        auc = self.common_get_auc(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        aupr = self.common_get_aupr(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        brier = self.common_get_brier(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        if self.module_id == 0: # code summary
+            dataset = CodeLoader(
+                data_path, 
+                self.max_size, 
+                self.token2index, 
+                self.tk2num, 
+                idx=idx,
+            )
+            test_loader = DataLoader(
+                dataset, 
+                batch_size=self.batch_size, 
+                collate_fn=my_collate,
+            )
+            acc = test_model(
+                test_loader, 
+                self.model, 
+                self.device, 
+                self.index2func, 
+                testset,
+            )[f'{testset} acc']
+        else: # code completion
+            test_loader = Word2vecLoader(
+                data_path, 
+                self.d_word_index, 
+                batch_size=self.batch_size, 
+                max_size=self.max_size, 
+                idx=list(idx),
+            )
+            acc = test(test_loader, self.model, testset)[f'{testset} acc']
+        
+        res[UE_name][testset]['coverage'].append(coverage)
+        res[UE_name][testset]['F-1'].append(acc)
+        res[UE_name][testset]['AUC'].append(auc)
+        res[UE_name][testset]['AUPR'].append(aupr)
+        res[UE_name][testset]['Brier'].append(brier)
+        
+        print('{} set [{} w/ threshold {}]: coverage {:.2f}, F-1 {:.2f}, AUC {:.2f}, AUPR {:.2f}, Brier {:.2f}'.format(
+            testset, UE_name, threshold, coverage, acc, auc, aupr, brier,
+        ))
 
 
-    def filtering(self, res, coverage, testset='val'):
+    def filtering(self, res, threshold, testset='val'):
+        original_size = len(self.vanilla[testset])
+        # remain_size = int(coverage * original_size)
+        if testset == 'val':
+            data_path = self.val_path
+        elif testset == 'test1':
+            data_path = self.test1_path
+        elif testset == 'test2':
+            data_path = self.test2_path
+        elif testset == 'test3':
+            data_path = self.test3_path
+        elif testset == 'test':
+            data_path = self.test_path
+        else:
+            raise ValueError()
+
+        # Vanilla
+        # va_idx = np.argsort(self.vanilla[testset])[::-1][:remain_size]
+        self.get_filtered_stats(
+            UE_scores=self.vanilla,
+            UE_name='vanilla',
+            testset=testset,
+            threshold=threshold,
+            data_path=data_path,
+            original_size=original_size,
+            res=res,
+        )
+        
+        # Temperature scaling
+        # temp_idx = np.argsort(self.temp[testset])[::-1][:remain_size]
+        self.get_filtered_stats(
+            UE_scores=self.temp,
+            UE_name='temperature',
+            testset=testset,
+            threshold=threshold,
+            data_path=data_path,
+            original_size=original_size,
+            res=res,
+        )
+
+        # Mutation
+        # mutation_idx = np.argsort(self.mutation[testset][0])[::-1][:remain_size]
+        self.get_filtered_stats(
+            UE_scores=self.mutation,
+            UE_name='mutation',
+            testset=testset,
+            threshold=threshold,
+            data_path=data_path,
+            original_size=original_size,
+            res=res,
+        )
+
+        # Dropout
+        # dropout_idx = np.argsort(self.dropout[testset])[::-1][:remain_size]
+        self.get_filtered_stats(
+            UE_scores=self.dropout,
+            UE_name='dropout',
+            testset=testset,
+            threshold=threshold,
+            data_path=data_path,
+            original_size=original_size,
+            res=res,
+        )
+
+        # Dissector
+        # pv_idx = np.argsort(self.pv[testset][0])[::-1][:remain_size]
+        self.get_filtered_stats(
+            UE_scores=self.pv,
+            UE_name='dissector',
+            testset=testset,
+            threshold=threshold,
+            data_path=data_path,
+            original_size=original_size,
+            res=res,
+        )
+        
+        
+    def get_coveraged_filtered_stats(
+        self, 
+        UE_scores: dict,
+        UE_name: str,  
+        testset: str, 
+        coverage: float, 
+        data_path: str, 
+        remain_size: int,
+        res: dict,
+    ):
+        if UE_name in ['mutation', 'dissector']:
+            scores = UE_scores[testset][0]
+        else:
+            scores = UE_scores[testset]
+            
+        idx = np.argsort(scores)[::-1][:remain_size]
+        threshold = scores[idx[-1]]
+        auc = self.common_get_auc(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        aupr = self.common_get_aupr(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        brier = self.common_get_brier(
+            self.truth[testset][idx], 
+            scores[idx],
+        )
+        if self.module_id == 0: # code summary
+            dataset = CodeLoader(
+                data_path, 
+                self.max_size, 
+                self.token2index, 
+                self.tk2num, 
+                idx=idx,
+            )
+            test_loader = DataLoader(
+                dataset, 
+                batch_size=self.batch_size, 
+                collate_fn=my_collate,
+            )
+            acc = test_model(
+                test_loader, 
+                self.model, 
+                self.device, 
+                self.index2func, 
+                testset,
+            )[f'{testset} acc']
+        else: # code completion
+            test_loader = Word2vecLoader(
+                data_path, 
+                self.d_word_index, 
+                batch_size=self.batch_size, 
+                max_size=self.max_size, 
+                idx=list(idx),
+            )
+            acc = test(test_loader, self.model, testset)[f'{testset} acc']
+        
+        res[UE_name][testset]['threshold'].append(threshold)
+        res[UE_name][testset]['F-1'].append(acc)
+        res[UE_name][testset]['AUC'].append(auc)
+        res[UE_name][testset]['AUPR'].append(aupr)
+        res[UE_name][testset]['Brier'].append(brier)
+        
+        print('{} set [{} w/ coverage {}]: threshold {:.2f}, F-1 {:.2f}, AUC {:.2f}, AUPR {:.2f}, Brier {:.2f}'.format(
+            testset, UE_name, coverage, threshold, acc, auc, aupr, brier,
+        ))
+
+        
+    def coverage_filtering(self, res, coverage, testset='val'):
         original_size = len(self.vanilla[testset])
         remain_size = int(coverage * original_size)
         if testset == 'val':
@@ -139,116 +383,109 @@ class Filter:
         else:
             raise ValueError()
 
-        # vanilla
-        va_idx = np.argsort(self.vanilla[testset])[::-1][:remain_size]
-        # print("vanilla all index ({}), selected index ({}), max index {}".format(
-        #     len(self.vanilla[testset]), len(va_idx), max(va_idx)
-        # ))
-        if self.module_id == 0: # code summary
-            va_dataset = CodeLoader(data_path, self.max_size, self.token2index, self.tk2num, idx=va_idx)
-            va_test_loader = DataLoader(va_dataset, batch_size=self.batch_size, collate_fn=my_collate)
-            va_acc = test_model(va_test_loader, self.model, self.device, self.index2func, testset)[f'{testset} acc']
-        else: # code completion
-            va_test_loader = Word2vecLoader(
-                data_path, self.d_word_index, batch_size=self.batch_size, 
-                max_size=self.max_size, idx=list(va_idx)
-            )
-            va_acc = test(va_test_loader, self.model, testset)[f'{testset} acc']
-    
-        res['va_acc'][testset].append(va_acc)
+        # Vanilla
+        self.get_coveraged_filtered_stats(
+            UE_scores=self.vanilla,
+            UE_name='vanilla',
+            testset=testset,
+            coverage=coverage,
+            data_path=data_path,
+            remain_size=remain_size,
+            res=res,
+        )
+        
+        # Temperature scaling
+        self.get_coveraged_filtered_stats(
+            UE_scores=self.temp,
+            UE_name='temperature',
+            testset=testset,
+            coverage=coverage,
+            data_path=data_path,
+            remain_size=remain_size,
+            res=res,
+        )
 
-        # temp scaling
-        temp_idx = np.argsort(self.temp[testset])[::-1][:remain_size]
-        if self.module_id == 0: # code summary
-            temp_dataset = CodeLoader(data_path, self.max_size, self.token2index, self.tk2num, idx=temp_idx)
-            temp_test_loader = DataLoader(temp_dataset, batch_size=self.batch_size, collate_fn=my_collate)
-            temp_acc = test_model(temp_test_loader, self.model, self.device, self.index2func, testset)[f'{testset} acc']
-        else: # code completion
-            temp_test_loader = Word2vecLoader(
-                data_path, self.d_word_index, batch_size=self.batch_size, 
-                max_size=self.max_size, idx=list(temp_idx)
-            )
-            temp_acc = test(temp_test_loader, self.model, testset)[f'{testset} acc']
+        # Mutation
+        self.get_coveraged_filtered_stats(
+            UE_scores=self.mutation,
+            UE_name='mutation',
+            testset=testset,
+            coverage=coverage,
+            data_path=data_path,
+            remain_size=remain_size,
+            res=res,
+        )
 
-        res['temp_acc'][testset].append(temp_acc)
+        # Dropout
+        self.get_coveraged_filtered_stats(
+            UE_scores=self.dropout,
+            UE_name='dropout',
+            testset=testset,
+            coverage=coverage,
+            data_path=data_path,
+            remain_size=remain_size,
+            res=res,
+        )
 
-        # mutation
-        mutation_idx = np.argsort(self.mutation[testset][0])[::-1][:remain_size]
-        if self.module_id == 0: # code summary
-            mutation_dataset = CodeLoader(data_path, self.max_size, self.token2index, self.tk2num, idx=mutation_idx)
-            mutation_test_loader = DataLoader(mutation_dataset, batch_size=self.batch_size, collate_fn=my_collate)
-            mutation_acc = test_model(mutation_test_loader, self.model, self.device, self.index2func, testset)[f'{testset} acc']
-        else: # code completion
-            mutation_test_loader = Word2vecLoader(
-                data_path, self.d_word_index, batch_size=self.batch_size, 
-                max_size=self.max_size, idx=list(mutation_idx)
-            )
-            mutation_acc = test(mutation_test_loader, self.model, testset)[f'{testset} acc']
+        # Dissector
+        self.get_coveraged_filtered_stats(
+            UE_scores=self.pv,
+            UE_name='dissector',
+            testset=testset,
+            coverage=coverage,
+            data_path=data_path,
+            remain_size=remain_size,
+            res=res,
+        )
 
-        res['mutation_acc'][testset].append(mutation_acc)
 
-        # dropout
-        dropout_idx = np.argsort(self.dropout[testset])[::-1][:remain_size]
-        if self.module_id == 0: # code summary
-            dropout_dataset = CodeLoader(data_path, self.max_size, self.token2index, self.tk2num, idx=dropout_idx)
-            dropout_test_loader = DataLoader(dropout_dataset, batch_size=self.batch_size, collate_fn=my_collate)
-            dropout_acc = test_model(dropout_test_loader, self.model, self.device, self.index2func, testset)[f'{testset} acc']
-        else: # code completion
-            dropout_test_loader = Word2vecLoader(
-                data_path, self.d_word_index, batch_size=self.batch_size, 
-                max_size=self.max_size, idx=list(dropout_idx)
-            )
-            dropout_acc = test(dropout_test_loader, self.model, testset)[f'{testset} acc']
-
-        res['dropout_acc'][testset].append(dropout_acc)
-
-        # dissector
-        pv_idx = np.argsort(self.pv[testset][0])[::-1][:remain_size]
-        if self.module_id == 0: # code summary
-            pv_dataset = CodeLoader(data_path, self.max_size, self.token2index, self.tk2num, idx=pv_idx)
-            pv_test_loader = DataLoader(pv_dataset, batch_size=self.batch_size, collate_fn=my_collate)
-            pv_acc = test_model(pv_test_loader, self.model, self.device, self.index2func, testset)[f'{testset} acc']
-        else: # code completion
-            pv_test_loader = Word2vecLoader(
-                data_path, self.d_word_index, batch_size=self.batch_size, 
-                max_size=self.max_size, idx=list(pv_idx)
-            )
-            pv_acc = test(pv_test_loader, self.model, testset)[f'{testset} acc']
-        res['pv_acc'][testset].append(pv_acc)
-
-        print('{} set [coverage {}]: vanilla test acc {}, temp test acc {}, mutation test acc {}, dropout test acc {}, dissector test acc {}'.format(
-            testset, coverage, va_acc, temp_acc, mutation_acc, dropout_acc, pv_acc
-        ))
-
-    def run(self):
+    def run(self, strategy='threshold'):
         # evaluate on test dataset
-        coverage_range = np.arange(0.01, 1.01, 0.01)
-        res = {
-            'x': coverage_range, 
-            'va_acc': {}, 
-            'temp_acc': {}, 
-            'mutation_acc': {},
-            'dropout_acc': {},
-            'pv_acc': {},
-        }
+        value_range = np.arange(0.01, 1.01, 0.01)
+        if strategy == 'threshold':
+            res = {
+                'threshold': value_range, 
+                'vanilla': {}, 
+                'temperature': {}, 
+                'mutation': {},
+                'dropout': {},
+                'dissector': {},
+            }
+        else:
+            res = {
+                'coverage': value_range, 
+                'vanilla': {}, 
+                'temperature': {}, 
+                'mutation': {},
+                'dropout': {},
+                'dissector': {},
+            }
     
         testsets = ['val', 'test1', 'test2', 'test3']
         for testset in testsets:
-            res['va_acc'][testset] = []
-            res['temp_acc'][testset] = []
-            res['mutation_acc'][testset] = []
-            res['dropout_acc'][testset] = []
-            res['pv_acc'][testset] = []
-            for coverage in tqdm(coverage_range):
-                self.filtering(res, coverage, testset)
+            res['vanilla'][testset] = defaultdict(list)
+            res['temperature'][testset] = defaultdict(list)
+            res['mutation'][testset] = defaultdict(list)
+            res['dropout'][testset] = defaultdict(list)
+            res['dissector'][testset] = defaultdict(list)
+            for threshold in tqdm(value_range):
+                if strategy == 'threshold':
+                    self.filtering(res, threshold, testset)
+                else:
+                    self.coverage_filtering(res, threshold, testset)
             
-        # save file 
-        torch.save(res, os.path.join(self.save_dir, 'filter.res'))
+        # Save file 
+        if strategy == 'threshold':
+            torch.save(res, os.path.join(self.save_dir, 'filter.res'))
+        else:
+            torch.save(res, os.path.join(self.save_dir, 'filter_coverage.res'))
 
 
 
 if __name__ == "__main__":
-    
+    import warnings
+    # Turn off all warnings
+    warnings.filterwarnings("ignore")
     import argparse
     
     parser = argparse.ArgumentParser()
@@ -265,13 +502,16 @@ if __name__ == "__main__":
                         help='Directory where the uncertainty results are stored')
     parser.add_argument('--out_dir', type=str, default='Uncertainty_Eval/filter',
                         help='Directory where the filtering results are stored')
+    parser.add_argument('--strategy', type=str, default='threshold',
+                        choices=['threshold', 'coverage'],
+                        help='Type of filtering strategy')
     
     args = parser.parse_args()
     task = args.task
     module_id = 0 if task == 'code_summary' else 1
     shift_type = args.shift_type
     model_type = args.model
-    
+    strategy = args.strategy
     dataset_dir = args.data_dir
     model_dir = args.model_dir
     uncertainty_dir = args.uncertainty_dir
@@ -298,13 +538,21 @@ if __name__ == "__main__":
     batch_size = 256 if task == 'code_summary' else 64
 
     filter = Filter(
-        res_dir=res_dir, data_dir=data_dir, metric_dir=metric_dir,
-        save_dir=save_dir, device=device, module_id=module_id, shift=shift,
-        max_size=max_size, batch_size=batch_size
+        res_dir=res_dir, 
+        data_dir=data_dir, 
+        metric_dir=metric_dir,
+        save_dir=save_dir, 
+        device=device, 
+        module_id=module_id, 
+        shift=shift,
+        max_size=max_size, 
+        batch_size=batch_size,
     )
 
-    filter.run()
+    filter.run(strategy=strategy)
 
+    # Turn on warnings again
+    warnings.filterwarnings("default")
 
 
 

@@ -105,8 +105,10 @@ def test(val_loader, model, val_name):
         # measure accuracy and record loss
         prec1 = accuracy(output.data, target, topk=(1,))
         top1.update(prec1[0][0], input.size(0))
-
-    res = {f'{val_name} acc': top1.avg.item()}
+    try:
+        res = {f'{val_name} acc': top1.avg.item()}
+    except:
+        res = {f'{val_name} acc': top1.avg}
     return res
 
 

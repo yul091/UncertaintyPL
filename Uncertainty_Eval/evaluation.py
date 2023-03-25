@@ -315,7 +315,12 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--shift_type', '-s', type=str, default='different_time', 
-                        choices=['different_project', 'different_author', 'different_time'],
+                        choices=[
+                            'different_project', 
+                            'different_author', 
+                            'different_time',
+                            'case_study',
+                        ],
                         help='Type of code data shift.')
     parser.add_argument('--model', '-m', type=str, default='code2vec', help='Model name.')
     parser.add_argument('--task', '-t', type=str, default='code_summary', 
@@ -330,7 +335,7 @@ if __name__ == "__main__":
         res_dir='Uncertainty_Results/{}/{}'.format(SHIFT, MODEL),
         save_dir='Uncertainty_Eval/{}/{}'.format(SHIFT, MODEL), 
         task=TASK,
-        shift=True,
+        shift=True if SHIFT != 'case_study' else False,
         ood=False, # True if ood is evaluated in Eval_res
     )
     # error/success prediction
