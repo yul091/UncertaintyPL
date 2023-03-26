@@ -460,8 +460,11 @@ class Filter:
                 'dropout': {},
                 'dissector': {},
             }
-    
-        testsets = ['val', 'test1', 'test2', 'test3']
+
+        if self.shift:
+            testsets = ['val', 'test1', 'test2', 'test3']
+        else:
+            testsets = ['val', 'test']
         for testset in testsets:
             res['vanilla'][testset] = defaultdict(list)
             res['temperature'][testset] = defaultdict(list)
