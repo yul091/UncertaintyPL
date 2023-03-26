@@ -490,7 +490,12 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--shift_type', type=str, default='different_time',
-                        choices=['different_time', 'different_author', 'different_project'],
+                        choices=[
+                            'different_time', 
+                            'different_author', 
+                            'different_project',
+                            'case_study'
+                        ],
                         help='Type of code distribution shift')
     parser.add_argument('--task', type=str, default='code_summary',
                         choices=['code_summary', 'code_completion'],
@@ -532,7 +537,7 @@ if __name__ == "__main__":
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
-    shift = True
+    shift = True if shift_type != 'case_study' else False
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     max_size = None if task == 'code_summary' else 200
     batch_size = 256 if task == 'code_summary' else 64
