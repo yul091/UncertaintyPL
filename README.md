@@ -9,7 +9,7 @@ This is a PyTorch implementation of two code analysis tasks, namely, code summar
 
 Our study overview:
 <p align="center">
-  <img src="Figure/study_overview.png" width="100%" height="100%">
+  <img src="Figure/overview.png" width="100%" height="100%">
 </p>
 
 Code analysis mechanism:
@@ -18,7 +18,7 @@ Code analysis mechanism:
 </p>
 
 ## Requirements
-- [python3.8+](https://www.python.org/downloads/release/python-380/)
+- [python3.7+](https://www.python.org/downloads/release/python-380/)
 - [PyTorch 1.13.0](https://pytorch.org/get-started/locally/)
 - Libraries and dependencies:
 ```
