@@ -18,21 +18,15 @@
 #   recommended to use a multi-core machine for the preprocessing 
 #   step and set this value to the number of cores.
 # PYTHON - python3 interpreter alias.
-# DIR=java_data/different_project/data
-# DIR=java_data/different_author/elasticsearch/data
-# DIR=java_data/different_time/data
-DIR=dataset/case_study
+DATASET_NAME=different_time # different_author, different_project, different_time, case_study
+DIR=data/main/$DATASET_NAME
 TRAIN_DIR=$DIR/train
 VAL_DIR=$DIR/val
-TEST_DIR=$DIR/test
-# TEST_DIR1=$DIR/test1
-# TEST_DIR2=$DIR/test2
-# TEST_DIR3=$DIR/test3
-DATASET_NAME=case_study
-# DATASET_NAME=python_project
-# TRG_DIR=java_data/different_author/$DATASET_NAME
-# TRG_DIR=java_data/different_project/$DATASET_NAME
-TRG_DIR=dataset/code_summary/$DATASET_NAME
+# TEST_DIR=$DIR/test
+TEST_DIR1=$DIR/test1
+TEST_DIR2=$DIR/test2
+TEST_DIR3=$DIR/test3
+TRG_DIR=dataset_new/code_summary/$DATASET_NAME
 
 ### Check if a directory exists ###
 if [ -d $TRG_DIR ] 
@@ -52,24 +46,24 @@ PYTHON=python3
 
 TRAIN_DATA_FILE=${DATASET_NAME}.train.raw.txt
 VAL_DATA_FILE=${DATASET_NAME}.val.raw.txt
-# TEST_DATA_FILE1=${DATASET_NAME}.test1.raw.txt
-# TEST_DATA_FILE2=${DATASET_NAME}.test2.raw.txt
-# TEST_DATA_FILE3=${DATASET_NAME}.test3.raw.txt
-TEST_DATA_FILE=${DATASET_NAME}.test.raw.txt
+TEST_DATA_FILE1=${DATASET_NAME}.test1.raw.txt
+TEST_DATA_FILE2=${DATASET_NAME}.test2.raw.txt
+TEST_DATA_FILE3=${DATASET_NAME}.test3.raw.txt
+# TEST_DATA_FILE=${DATASET_NAME}.test.raw.txt
 EXTRACTOR_JAR=JavaExtractor/JPredict/target/JavaExtractor-0.0.1-SNAPSHOT.jar
 
-# echo "Extracting paths from test set1 ..."
-# ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR1} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE1}
-# echo "Finished extracting paths from test set1"
-# echo "Extracting paths from test set2 ..."
-# ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR2} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE2}
-# echo "Finished extracting paths from test set2"
-# echo "Extracting paths from test set3 ..."
-# ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR3} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE3}
-# echo "Finished extracting paths from test set3"
-echo "Extracting paths from test set ..."
-${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE}
-echo "Finished extracting paths from test set"
+echo "Extracting paths from test set1 ..."
+${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR1} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE1}
+echo "Finished extracting paths from test set1"
+echo "Extracting paths from test set2 ..."
+${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR2} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE2}
+echo "Finished extracting paths from test set2"
+echo "Extracting paths from test set3 ..."
+${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR3} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE3}
+echo "Finished extracting paths from test set3"
+# echo "Extracting paths from test set ..."
+# ${PYTHON} JavaExtractor/extract.py --dir ${TEST_DIR} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${TEST_DATA_FILE}
+# echo "Finished extracting paths from test set"
 echo "Extracting paths from validation set ..."
 ${PYTHON} JavaExtractor/extract.py --dir ${VAL_DIR} --max_path_length 8 --max_path_width 2 --num_threads ${NUM_THREADS} --jar ${EXTRACTOR_JAR} > ${VAL_DATA_FILE}
 echo "Finished extracting paths from validation set"
@@ -89,7 +83,9 @@ cat ${TRAIN_DATA_FILE} | cut -d' ' -f2- | tr ' ' '\n' | cut -d',' -f2 | awk '{n[
 ${PYTHON} preprocess.py \
   --train_data ${TRAIN_DATA_FILE} \
   --val_data ${VAL_DATA_FILE} \
-  --test_data ${TEST_DATA_FILE} \
+  --test_data1 ${TEST_DATA_FILE1} \
+  --test_data2 ${TEST_DATA_FILE2} \
+  --test_data3 ${TEST_DATA_FILE3} \
   --max_contexts ${MAX_CONTEXTS} \
   --word_vocab_size ${WORD_VOCAB_SIZE} \
   --path_vocab_size ${PATH_VOCAB_SIZE} \

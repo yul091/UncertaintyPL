@@ -48,9 +48,6 @@ class VocabBuilder(object):
         _word_count = filter(lambda x:  min_sample<=x[1], self.word_count.items())
         tokens, _ = zip(*_word_count)
 
-        # for tk in tokens:
-        #     print()
-
         # inset padding and unknown
         self.word_to_index = { tkn: i for i, tkn in enumerate([padding_marker, unknown_marker] + sorted(tokens))}
         print('Turncated vocab size:{} (removed:{})'.format(len(self.word_to_index),
