@@ -1,7 +1,7 @@
 # UncertaintyPL
 An Impact Study of Data Shift Towards Code Analysis Model and Uncertainty Measurement:
 
-This is a PyTorch implementation of two code analysis tasks, namely, code summarization and code completion with three model archiectures for each task. We use the Java and Python extractors to preprocess the raw code snippets. Users may further extend the work to other programming languages following our study.
+This is a PyTorch implementation of two code analysis tasks, namely, method name prediction~(MNP) and code completion~(CC) with six models. We use Python extractors to preprocess the raw code snippets. Users may further extend the work to other programming languages following our study.
 
 <p align="center">
   <img src="Figure/code_shift.png" width="70%" height="70%">
