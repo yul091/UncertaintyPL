@@ -1,6 +1,5 @@
 import csv
-
-# import nltk
+import nltk
 
 LABEL_TO_INDEX = {
     'business':                  0,
@@ -20,15 +19,15 @@ def create_tsv_file(path_in, path_out):
         writer.writerow(['label','body'])
         for line in f:
             tokens = [x.lower() for x in line.split()]
-            # label = LABEL_TO_INDEX[tokens[-1]]
-            label = 0
+            label = LABEL_TO_INDEX[tokens[-1]]
+            # label = 0
             body = ' '.join(tokens[:-1])
             writer.writerow([label, body])
 
 
 def _tokenize(text):
-    # return [x.lower() for x in nltk.word_tokenize(text)]
-    return [ x.lower() for x in str(text).split() ]
+    return [x.lower() for x in nltk.word_tokenize(text)]
+    # return [ x.lower() for x in str(text).split() ]
 
 
 ''' from https://github.com/pytorch/examples/blob/master/imagenet/main.py'''

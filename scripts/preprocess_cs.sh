@@ -18,7 +18,7 @@
 #   recommended to use a multi-core machine for the preprocessing 
 #   step and set this value to the number of cores.
 # PYTHON - python3 interpreter alias.
-DATASET_NAME=different_time # different_author, different_project, different_time, case_study
+DATASET_NAME=different_author # different_author, different_project, different_time, case_study
 DIR=data/main/$DATASET_NAME
 TRAIN_DIR=$DIR/train
 VAL_DIR=$DIR/val
@@ -97,4 +97,4 @@ ${PYTHON} preprocess.py \
 
 # If all went well, the raw data files can be deleted, because preprocess.py creates new files 
 # with truncated and padded number of paths for each example.
-rm ${TRAIN_DATA_FILE} ${VAL_DATA_FILE} ${TEST_DATA_FILE}
+rm ${TRAIN_DATA_FILE} ${VAL_DATA_FILE} ${TEST_DATA_FILE1} ${TEST_DATA_FILE2} ${TEST_DATA_FILE3}

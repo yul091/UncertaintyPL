@@ -84,18 +84,23 @@ def parse_python(src_folder, dest_dir, dest_file_name, token_dict):
 
 
 if __name__ == '__main__':
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", type=str, default='data/main/different_project', help='Input dataset directory')
+    parser.add_argument("--dest_dir", type=str, default='dataset_new/code_completion/different_project', help='Output dataset directory')
+    args = parser.parse_args()
     ###############################################################################
     # Handle java files
-    # data_dir = 'java_data/different_project/data'
-    # data_type = ['train', 'val', 'test1', 'test2', 'test3']
-    data_dir = 'dataset/case_study'
-    data_type = ['train', 'val', 'test']
+    data_dir = args.data_dir
+    dest_dir = args.dest_dir
+    data_type = ['train', 'val', 'test1', 'test2', 'test3']
+    # data_dir = 'data/case_study'
+    # data_type = ['train', 'val', 'test']
     java_dict = {
         k + '.txt': os.path.join(data_dir, k) # 'train': data_dir/train/
         for k in data_type
     }
-
-    dest_dir = "dataset/code_completion/case_study"
     token_dict = {} # save token hist in dict
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
