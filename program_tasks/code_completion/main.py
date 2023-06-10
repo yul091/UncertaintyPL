@@ -19,6 +19,9 @@ from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
 from program_tasks.code_completion.util import AverageMeter, accuracy, adjust_learning_rate
 from models.code_analysis.model_cc import (
+    Code2vecForClassification,
+    CodeBertaForClassification,
+    GraphCodeBertForClassification,
     BiLSTMForClassification,
     CodeBertForClassification, 
     CodeGPTForClassification,
@@ -101,7 +104,7 @@ def test(val_loader, model, val_name):
     top1 = AverageMeter()
     # switch to evaluate mode
     model.eval()
-    for i, (input, target, _) in enumerate(val_loader):
+    for i, (input, target, _) in tqdm(enumerate(val_loader)):
         input = input.cuda()
         target = target.cuda()
         # compute output
@@ -123,7 +126,7 @@ def main(args):
     except:
         d_word_index, embed, train_loader, val_loader, test_loader = preprocess_data()
     vocab_size = len(d_word_index)
-    print('vocab size: {}'.format(vocab_size))
+    print('vocab size: {}, num of batches: {}'.format(vocab_size, len(train_loader)))
 
     # load ckpt if necessary
     if args.load_ckpt:
@@ -151,10 +154,27 @@ def main(args):
                 use_cache=False, n_embd=args.embedding_dim,
             )
             model = CodeGPTForClassification(config)
+        elif args.model_type == 'code2vec':
+            model = Code2vecForClassification(vocab_size, embed, hidden_size=args.embedding_dim)
+        elif args.model_type == 'codeberta':
+            config_class = RobertaConfig
+            pretrained_model = 'huggingface/CodeBERTa-small-v1'
+            config = config_class.from_pretrained(
+                pretrained_model, num_labels=len(d_word_index), 
+                use_cache=False, hidden_size=args.embedding_dim,
+            )
+            model = CodeBertaForClassification(config)
+        elif args.model_type == 'graphcodebert':
+            config_class = RobertaConfig
+            pretrained_model = 'microsoft/graphcodebert-base'
+            config = config_class.from_pretrained(
+                pretrained_model, num_labels=len(d_word_index), 
+                use_cache=False, hidden_size=args.embedding_dim,
+            )
+            model = GraphCodeBertForClassification(config)
         else:
             raise TypeError('Undefined Model Type!')
         
-
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, model.parameters()), 
             lr=args.lr, 
@@ -209,13 +229,13 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--epochs', default=10, type=int, metavar='N', help='number of total epochs to run')
-    parser.add_argument('-b', '--batch-size', default=2048, type=int, metavar='N', help='mini-batch size')
+    parser.add_argument('--batch_size', default=2048, type=int, metavar='N', help='mini-batch size')
     parser.add_argument('--lr', '--learning-rate', default=0.001, type=float, metavar='LR',
                         help='initial learning rate')
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float, metavar='W', help='weight decay')
     parser.add_argument('--embedding_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--model_type', default='codebert', type=str, 
-                        choices=['codebert', 'lstm', 'codegpt'], 
+                        choices=['codebert', 'lstm', 'codegpt', 'code2vec', 'codeberta', 'graphcodebert'], 
                         help='model architecture')
     parser.add_argument('--layers', default=2, type=int, metavar='N', help='number of rnn layers')
     parser.add_argument('--min_samples', default=5, type=int, metavar='N', help='min number of tokens')

@@ -9,9 +9,9 @@ from transformers import (
 from models.utils import count_parameters
 
 
-class Word2vecPredict(nn.Module):
+class Code2vecForClassification(nn.Module):
     def __init__(self, vocab_size, token_vec, hidden_size=120):
-        super(Word2vecPredict, self).__init__()
+        super(Code2vecForClassification, self).__init__()
         if torch.is_tensor(token_vec):
             self.encoder = nn.Embedding(vocab_size, hidden_size, padding_idx=0, _weight=token_vec)
             self.encoder.weight.requires_grad = False
@@ -19,6 +19,7 @@ class Word2vecPredict(nn.Module):
             self.encoder = nn.Embedding(vocab_size, hidden_size, padding_idx=0)
 
         self.linear = nn.Linear(hidden_size, vocab_size)
+        self.drop = nn.Dropout(0.1)
         print('Created {} with {:,} params:\n{}'.format(
             self.__class__.__name__, count_parameters(self), self
         ))
@@ -27,6 +28,7 @@ class Word2vecPredict(nn.Module):
     def forward(self, x): # B X T
         vec = self.encoder(x) # B X T X H
         vec = torch.mean(vec, dim=1) # B X H
+        vec = self.drop(torch.tanh(vec)) # B X H
         pred = self.linear(vec) # B X V
         return pred
 
@@ -34,8 +36,8 @@ class Word2vecPredict(nn.Module):
         res = []
         vec = self.encoder(x)
         vec = torch.mean(vec, dim=1)
+        vec = self.drop(torch.tanh(vec))
         res.append(vec.detach().cpu())
-        # pred = self.linear(vec)
         return res
 
 
@@ -98,13 +100,11 @@ class CodeBertForClassification(RobertaPreTrainedModel):
             self.__class__.__name__, count_parameters(self), self
         ))
             
-    
     def forward(self, input_ids):
         outputs = self.roberta(input_ids)
         pooled_output = outputs['pooler_output'] # B X H
         pooled_output = self.dropout(pooled_output) # B X H
         pred = self.classifier(pooled_output) # B X V
-        
         return pred
 
     def get_hidden(self, x):
@@ -112,8 +112,73 @@ class CodeBertForClassification(RobertaPreTrainedModel):
         outputs = self.roberta(x)
         pooled_output = outputs['pooler_output'] # B X H
         res.append(pooled_output.detach().cpu())
+        # pooled_output = self.dropout(pooled_output) # B X H
+        return res
+    
+    
+class GraphCodeBertForClassification(RobertaPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [r"position_ids"]
+    
+    def __init__(self, config, dropout=0.1):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+        self.config = config
+        self.roberta = RobertaModel(config)
+        
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.sub_num = [1]
+        self.init_weights()
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
+            
+    def forward(self, input_ids):
+        outputs = self.roberta(input_ids)
+        pooled_output = outputs['pooler_output'] # B X H
         pooled_output = self.dropout(pooled_output) # B X H
+        pred = self.classifier(pooled_output) # B X V
+        return pred
 
+    def get_hidden(self, x):
+        res = []
+        outputs = self.roberta(x)
+        pooled_output = outputs['pooler_output'] # B X H
+        res.append(pooled_output.detach().cpu())
+        # pooled_output = self.dropout(pooled_output) # B X H
+        return res
+    
+    
+class CodeBertaForClassification(RobertaPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [r"position_ids"]
+    
+    def __init__(self, config, dropout=0.1):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+        self.config = config
+        self.roberta = RobertaModel(config)
+        
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.sub_num = [1]
+        self.init_weights()
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
+            
+    def forward(self, input_ids):
+        outputs = self.roberta(input_ids)
+        pooled_output = outputs['pooler_output'] # B X H
+        pooled_output = self.dropout(pooled_output) # B X H
+        pred = self.classifier(pooled_output) # B X V
+        return pred
+
+    def get_hidden(self, x):
+        res = []
+        outputs = self.roberta(x)
+        pooled_output = outputs['pooler_output'] # B X H
+        res.append(pooled_output.detach().cpu())
+        # pooled_output = self.dropout(pooled_output) # B X H
         return res
     
     
@@ -158,5 +223,5 @@ class CodeGPTForClassification(GPT2PreTrainedModel):
         outputs = self.gpt2(x)
         hidden_states = outputs['last_hidden_state'] # B X T X H
         res.append(hidden_states[:, -1, :].detach().cpu())
-        hidden_states = self.dropout(hidden_states)
+        # hidden_states = self.dropout(hidden_states)
         return res

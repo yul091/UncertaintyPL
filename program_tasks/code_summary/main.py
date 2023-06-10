@@ -1,5 +1,6 @@
 import sys
 sys.dont_write_bytecode = True
+sys.path.insert(0, '/home/yuli/UncertaintyPL/')
 import pickle
 import shutil
 from random import sample
@@ -11,7 +12,7 @@ import argparse
 import numpy as np
 import os
 from tqdm import tqdm
-from transformers import RobertaConfig
+from transformers import RobertaConfig, GPT2Config
 from torch.utils.data import DataLoader, sampler
 from preprocess.checkpoint import Checkpoint
 from preprocess.utils import set_random_seed
@@ -19,10 +20,11 @@ from program_tasks.code_summary.CodeLoader import CodeLoader
 from models.code_analysis.model_cs import (
     Code2Vec, 
     BiLSTM2Vec,
-    CodeRoBerta2Vec, 
+    CodeBerta2Vec, 
+    CodeBert2Vec,
+    CodeGPT2Vec,
     GraphCodeBert2Vec,
 )
-
 
 
 def my_collate(batch):
@@ -138,10 +140,12 @@ def main(args):
     tk_path = args.tk_path
     train_path = args.train_data
     val_path = args.val_data
-    test_path = args.test_data
-    # test_path1 = args.test_data1
-    # test_path2 = args.test_data2
-    # test_path3 = args.test_data3
+    try: 
+        test_path1 = args.test_data1
+        test_path2 = args.test_data2
+        test_path3 = args.test_data3
+    except:
+        test_path = args.test_data
     embed_dim = args.embed_dim
     embed_type = args.embed_type
     vec_path = args.embed_path
@@ -162,6 +166,32 @@ def main(args):
     index2func = dict2list(func2index)
     if args.model_type == 'code2vec':
         model = Code2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!
+    elif args.model_type == 'lstm':
+        model = BiLSTM2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!
+    elif args.model_type == 'codebert':
+        pretrained_model = 'microsoft/codebert-base'
+        config_class = RobertaConfig
+        config_node = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=nodes_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_path = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=paths_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_concat = config_class.from_pretrained(
+            pretrained_model,
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=3*embed_dim,
+        )
+        model = CodeBert2Vec([config_node, config_path, config_concat])
     elif args.model_type == 'graphcodebert':
         pretrained_model = 'microsoft/graphcodebert-base'
         config_class = RobertaConfig
@@ -186,7 +216,7 @@ def main(args):
             hidden_size=3*embed_dim,
         )
         model = GraphCodeBert2Vec([config_node, config_path, config_concat])
-    elif args.model_type == 'coderoberta':
+    elif args.model_type == 'codeberta':
         pretrained_model = 'huggingface/CodeBERTa-small-v1'
         config_class = RobertaConfig
         config_node = config_class.from_pretrained(
@@ -209,10 +239,32 @@ def main(args):
             use_cache=False, 
             hidden_size=3*embed_dim,
         )
-        model = CodeRoBerta2Vec([config_node, config_path, config_concat])
+        model = CodeBerta2Vec([config_node, config_path, config_concat])
+    elif args.model_type == 'codegpt':
+        pretrained_model = 'microsoft/CodeGPT-small-java-adaptedGPT2'
+        config_class = GPT2Config
+        config_node = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=nodes_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            n_embd=embed_dim,
+        )
+        config_path = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=paths_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            n_embd=embed_dim,
+        )
+        config_concat = config_class.from_pretrained(
+            pretrained_model,
+            num_labels=output_dim, 
+            use_cache=False, 
+            n_embd=3*embed_dim,
+        )
+        model = CodeGPT2Vec([config_node, config_path, config_concat])
         
-    elif args.model_type == 'lstm':
-        model = BiLSTM2Vec(nodes_dim, paths_dim, embed_dim, output_dim, embed) # modified!
 
     criterian = nn.CrossEntropyLoss()  # loss
     # load ckpt if necessary
@@ -233,24 +285,28 @@ def main(args):
     # Build test loader
     train_dataset = CodeLoader(train_path, max_size, token2index, tk2num)
     val_dataset = CodeLoader(val_path, max_size, token2index, tk2num)
-    test_dataset = CodeLoader(test_path, max_size, token2index, tk2num)
-    print('train data {}, val data {}, test data {}'.format(
-        len(train_dataset), len(val_dataset), len(test_dataset),
-    ))
-    # test_dataset1 = CodeLoader(test_path1, max_size, token2index, tk2num)
-    # test_dataset2 = CodeLoader(test_path2, max_size, token2index, tk2num)
-    # test_dataset3 = CodeLoader(test_path3, max_size, token2index, tk2num)
-    # print('train data {}, val data {}, test data1 {}, test data2 {}, test data3 {}'.format(
-    #     len(train_dataset), len(val_dataset), len(test_dataset1), 
-    #     len(test_dataset2), len(test_dataset3),
-    # ))
+    try:
+        test_dataset1 = CodeLoader(test_path1, max_size, token2index, tk2num)
+        test_dataset2 = CodeLoader(test_path2, max_size, token2index, tk2num)
+        test_dataset3 = CodeLoader(test_path3, max_size, token2index, tk2num)
+        print('train data {}, val data {}, test data1 {}, test data2 {}, test data3 {}'.format(
+            len(train_dataset), len(val_dataset), len(test_dataset1), 
+            len(test_dataset2), len(test_dataset3),
+        ))
+    except:
+        test_dataset = CodeLoader(test_path, max_size, token2index, tk2num)
+        print('train data {}, val data {}, test data {}'.format(
+            len(train_dataset), len(val_dataset), len(test_dataset),
+        ))
 
     train_loader = DataLoader(train_dataset, batch_size=train_batch, collate_fn=my_collate)
     val_loader = DataLoader(val_dataset, batch_size=train_batch, collate_fn=my_collate)
-    test_loader = DataLoader(test_dataset, batch_size=train_batch, collate_fn=my_collate)
-    # test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
-    # test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
-    # test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
+    try:
+        test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
+        test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
+        test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
+    except:
+        test_loader = DataLoader(test_dataset, batch_size=train_batch, collate_fn=my_collate)
 
     # training
     print('begin training experiment {} ...'.format(experiment_name))
@@ -263,12 +319,14 @@ def main(args):
         # print('max size: {}'.format(max_size))
         train_model(model, train_loader, device, criterian, optimizer)
         val_res = test_model(val_loader, model, device, index2func, 'val')
-        test_res = test_model(test_loader, model, device, index2func, 'test')
-        # test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
-        # test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
-        # test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
-        merge_res = {**val_res, **test_res} # merge all the test results
-        # merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
+        try:
+            test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
+            test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
+            test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
+            merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
+        except:
+            test_res = test_model(test_loader, model, device, index2func, 'test')
+            merge_res = {**val_res, **test_res} # merge all the test results
         merge_res["epoch"] = epoch
         print(merge_res)
 
@@ -300,16 +358,16 @@ if __name__ == '__main__':
     parser.add_argument('--mean_seq', default=False, action='store_true', help='use mean of rnn output')
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
     parser.add_argument('--model_type', type=str, default='codebert', 
-                        choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'coderoberta'], 
+                        choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'codeberta', 'codegpt'], 
                         help='model architecture for method name prediction')
     parser.add_argument('--embed_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')
     parser.add_argument('--train_data', type=str, default='data/java_pkl_files/train.pkl')
     parser.add_argument('--val_data', type=str, default='data/java_pkl_files/val.pkl')
-    parser.add_argument('--test_data', type=str, default='data/java_pkl_files/test.pkl')
-    # parser.add_argument('--test_data1', type=str, default='data/java_pkl_files/test1.pkl')
-    # parser.add_argument('--test_data2', type=str, default='data/java_pkl_files/test2.pkl')
-    # parser.add_argument('--test_data3', type=str, default='data/java_pkl_files/test3.pkl')
+    # parser.add_argument('--test_data', type=str, default='data/java_pkl_files/test.pkl')
+    parser.add_argument('--test_data1', type=str, default='data/java_pkl_files/test1.pkl')
+    parser.add_argument('--test_data2', type=str, default='data/java_pkl_files/test2.pkl')
+    parser.add_argument('--test_data3', type=str, default='data/java_pkl_files/test3.pkl')
     parser.add_argument('--tk_path', type=str, default='data/java_pkl_files/tk.pkl')
     parser.add_argument('--embed_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code summary')

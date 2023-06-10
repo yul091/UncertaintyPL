@@ -69,27 +69,24 @@ def main(DATA_DIR, DIR, suffix='.c2v'):
     build_dict(dataset)
     norm_data('train', suffix=suffix)
     norm_data('val', suffix=suffix)
-    norm_data('test', suffix=suffix)
-    # norm_data('test1', suffix=suffix)
-    # norm_data('test2', suffix=suffix)
-    # norm_data('test3', suffix=suffix)
+    try:
+        norm_data('test1', suffix=suffix)
+        norm_data('test2', suffix=suffix)
+        norm_data('test3', suffix=suffix)
+    except:
+        norm_data('test', suffix=suffix)
+   
 
 
 if __name__ == '__main__':
     file_dict = {
-        # 'elasticsearch': 'java_pkl',
-        # 'java_project1': 'java_pkl1',
-        # 'java_project2': 'java_pkl2',
-        # 'java_project3': 'java_pkl3',
-        # 'java_project': 'java_pkl'
-        # 'python_files': 'python_pkl'
-        'case_study': 'case_study'
+        # 'case_study': 'case_study'
+        'different_author': 'different_author',
+        'different_time': 'different_time',
+        'different_project': 'different_project',
     }
     for FILENAME, GEN_FILE in file_dict.items():
-        # TRG_DIR = 'java_data/different_author/elasticsearch'
-        # TRG_DIR = 'java_data/different_time'
-        # TRG_DIR = 'java_data/different_project'
-        TRG_DIR = 'dataset/code_summary' 
+        TRG_DIR = 'dataset_new/code_summary' 
         DIR = os.path.join(TRG_DIR, GEN_FILE)
         DATA_DIR = os.path.join(TRG_DIR, FILENAME)
         main(DATA_DIR, DIR, suffix='.c2v')
