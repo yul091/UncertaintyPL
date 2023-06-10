@@ -1,5 +1,6 @@
 import os
-import chardet
+import sys
+sys.dont_write_bytecode = True
 import javalang
 from tqdm import tqdm
 import torch
@@ -24,7 +25,11 @@ def parse_java(src_folder, dest_dir, dest_file_name, token_dict):
                         except:
                             file = open(os.path.join(subfolder, file_path), 'r', encoding='iso-8859-1')
                             file_string = ' '.join(file.read().splitlines()) # read in oneline
-                        tokens = list(javalang.tokenizer.tokenize(file_string)) # ast java parse
+                        try:
+                            tokens = list(javalang.tokenizer.tokenize(file_string)) # ast java parse
+                        except:
+                            print('----------------------------Error string----------------------------')
+                            continue
                         # print('token list: \n', [x.value for x in tokens])
                         for tok in tokens:
                             token_dict[dest_file_name][tok.value] += 1

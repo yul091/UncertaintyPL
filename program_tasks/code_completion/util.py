@@ -1,5 +1,6 @@
 import csv
 import nltk
+import random
 
 LABEL_TO_INDEX = {
     'business':                  0,
@@ -18,11 +19,13 @@ def create_tsv_file(path_in, path_out):
         writer = csv.writer(fw, delimiter='\t')
         writer.writerow(['label','body'])
         for line in f:
-            tokens = [x.lower() for x in line.split()]
-            label = LABEL_TO_INDEX[tokens[-1]]
-            # label = 0
-            body = ' '.join(tokens[:-1])
-            writer.writerow([label, body])
+            print("line: ", line)
+            if line.strip() != '':
+                mask_idx = random.randint(0, len(line.split()) - 1)
+                tokens = [x.lower() for x in line.split()]
+                label = tokens[mask_idx]
+                body = ' '.join(tokens[:mask_idx]) + ' [MASK] ' + ' '.join(tokens[mask_idx + 1:])
+                writer.writerow([label, body])
 
 
 def _tokenize(text):
