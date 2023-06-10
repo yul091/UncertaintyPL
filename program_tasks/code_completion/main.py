@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 sys.dont_write_bytecode = True
+sys.path.insert(0, '/home/yuli/UncertaintyPL/')
 import os
 import shutil
 import argparse
@@ -28,11 +29,13 @@ def preprocess_data():
     print("===> creating vocabs ...")
     train_path = args.train_data
     val_path = args.val_data
-    test_path = args.test_data
-    # test_path1 = args.test_data1
-    # test_path2 = args.test_data2
-    # test_path3 = args.test_data3
-
+    try:
+        test_path1 = args.test_data1
+        test_path2 = args.test_data2
+        test_path3 = args.test_data3
+    except:
+        test_path = args.test_data
+    
     pre_embedding_path = args.embedding_path
     if args.embedding_type == 0:
         d_word_index, embed = torch.load(pre_embedding_path)
@@ -59,13 +62,15 @@ def preprocess_data():
 
     train_loader = Word2vecLoader(train_path, d_word_index, batch_size=args.batch_size)
     val_loader = Word2vecLoader(val_path, d_word_index, batch_size=args.batch_size)
-    test_loader = Word2vecLoader(test_path, d_word_index, batch_size=args.batch_size)
-    return d_word_index, embed, train_loader, val_loader, test_loader
-    # val_loader1 = Word2vecLoader(test_path1, d_word_index, batch_size=args.batch_size)
-    # val_loader2 = Word2vecLoader(test_path2, d_word_index, batch_size=args.batch_size)
-    # val_loader3 = Word2vecLoader(test_path3, d_word_index, batch_size=args.batch_size)
-    # return d_word_index, embed, train_loader, val_loader, \
-    #     val_loader1, val_loader2, val_loader3
+    try:
+        val_loader1 = Word2vecLoader(test_path1, d_word_index, batch_size=args.batch_size)
+        val_loader2 = Word2vecLoader(test_path2, d_word_index, batch_size=args.batch_size)
+        val_loader3 = Word2vecLoader(test_path3, d_word_index, batch_size=args.batch_size)
+        return d_word_index, embed, train_loader, val_loader, \
+            val_loader1, val_loader2, val_loader3
+    except:
+        test_loader = Word2vecLoader(test_path, d_word_index, batch_size=args.batch_size)
+        return d_word_index, embed, train_loader, val_loader, test_loader
 
 
 def train(train_loader, model, criterion, optimizer):
@@ -94,7 +99,6 @@ def train(train_loader, model, criterion, optimizer):
 
 def test(val_loader, model, val_name):
     top1 = AverageMeter()
-
     # switch to evaluate mode
     model.eval()
     for i, (input, target, _) in enumerate(val_loader):
@@ -113,9 +117,11 @@ def test(val_loader, model, val_name):
 
 
 def main(args):
-    # d_word_index, embed, train_loader, val_loader, \
-    #     test_loader1, test_loader2, test_loader3 = preprocess_data()
-    d_word_index, embed, train_loader, val_loader, test_loader = preprocess_data()
+    try:
+        d_word_index, embed, train_loader, val_loader, \
+            test_loader1, test_loader2, test_loader3 = preprocess_data()
+    except:
+        d_word_index, embed, train_loader, val_loader, test_loader = preprocess_data()
     vocab_size = len(d_word_index)
     print('vocab size: {}'.format(vocab_size))
 
@@ -176,12 +182,14 @@ def main(args):
 
         print(epoch, 'cost time', ed - st)
         res_val = test(val_loader, model, 'val')
-        res_test = test(test_loader, model, 'test')
-        # res1 = test(test_loader1, model, 'test1')
-        # res2 = test(test_loader2, model, 'test2')
-        # res3 = test(test_loader3, model, 'test3')
-        merge_res = {**res_val, **res_test}
-        # merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
+        try:
+            res1 = test(test_loader1, model, 'test1')
+            res2 = test(test_loader2, model, 'test2')
+            res3 = test(test_loader3, model, 'test3')
+            merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
+        except:
+            res_test = test(test_loader, model, 'test')
+            merge_res = {**res_val, **res_test}
         print(merge_res)
 
         # Save best model checkpoint
@@ -219,10 +227,10 @@ if __name__ == '__main__':
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
     parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
     parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/val.tsv', help='model name')
-    parser.add_argument('--test_data', type=str, default='data/code_completion/different_time/test.tsv', help='model name')
-    # parser.add_argument('--test_data1', type=str, default='data/code_completion/different_time/test1.tsv', help='model name')
-    # parser.add_argument('--test_data2', type=str, default='data/code_completion/different_time/test2.tsv', help='model name')
-    # parser.add_argument('--test_data3', type=str, default='data/code_completion/different_time/test3.tsv', help='model name')
+    # parser.add_argument('--test_data', type=str, default='data/code_completion/different_time/test.tsv', help='model name')
+    parser.add_argument('--test_data1', type=str, default='data/code_completion/different_time/test1.tsv', help='model name')
+    parser.add_argument('--test_data2', type=str, default='data/code_completion/different_time/test2.tsv', help='model name')
+    parser.add_argument('--test_data3', type=str, default='data/code_completion/different_time/test3.tsv', help='model name')
     parser.add_argument('--embedding_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code_completion')
     parser.add_argument('--res_dir', type=str, default='results/code_completion')

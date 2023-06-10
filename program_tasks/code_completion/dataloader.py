@@ -48,7 +48,6 @@ class TextClassDataLoader(object):
         return length
 
     def generate_indexifyer(self):
-
         def indexify(lst_text):
             indices = []
             for word in lst_text:
@@ -78,9 +77,7 @@ class TextClassDataLoader(object):
             self.index += 1
             n += 1
         self.batch_index += 1
-
         label, string = tuple(zip(*batch))
-
         # get the length of each seq in your batch
         seq_lengths = torch.LongTensor([len(s) for s in string])
 
@@ -94,10 +91,8 @@ class TextClassDataLoader(object):
         seq_lengths, perm_idx = seq_lengths.sort(0, descending=True)
         seq_tensor = seq_tensor[perm_idx]
         # seq_tensor = seq_tensor.transpose(0, 1)
-
         label = torch.LongTensor(label)
         label = label[perm_idx]
-
         return seq_tensor, label, seq_lengths
 
     def __len__(self):
@@ -122,7 +117,6 @@ class TextClassDataLoader(object):
 
 
 class Word2vecLoader(object):
-
     def __init__(self, path_file, word_to_index, batch_size=64, max_size=None, idx=None):
         self.batch_size = batch_size
         self.word_to_index = word_to_index
@@ -134,9 +128,12 @@ class Word2vecLoader(object):
             size = min(len(df), max_size)
             df = df[:size]
 
+        
         df['body'] = df['body'].apply(_tokenize)
         self.old_samples = df['body'].copy()
         df['body'] = df['body'].apply(self.generate_indexifyer())
+        df['label'] = df['label'].apply(self.label_to_index())
+        print("Processed dataframe: ", df.head())
         samples = df.values.tolist()
         self.samples = self.transfer_samples(samples)
 
@@ -169,9 +166,16 @@ class Word2vecLoader(object):
         for sample in self.samples:
             length = max(length, len(sample[1]))
         return length
+    
+    def label_to_index(self):
+        def indexify(label: str):
+            if label in self.word_to_index:
+                return self.word_to_index[label]
+            else:
+                return self.word_to_index['____UNKNOW____']
+        return indexify
 
     def generate_indexifyer(self):
-
         def indexify(lst_text):
             indices = []
             for word in lst_text:
@@ -212,9 +216,7 @@ class Word2vecLoader(object):
             self.index += 1
             n += 1
         self.batch_index += 1
-
         label, string = tuple(zip(*batch))
-
         # get the length of each seq in your batch
         seq_lengths = torch.LongTensor([len(s) for s in string])
 
@@ -228,8 +230,6 @@ class Word2vecLoader(object):
         seq_lengths, perm_idx = seq_lengths.sort(0, descending=True)
         seq_tensor = seq_tensor[perm_idx]
         # seq_tensor = seq_tensor.transpose(0, 1)
-
         label = torch.LongTensor(label)
         label = label[perm_idx]
-
         return seq_tensor, label, seq_lengths
