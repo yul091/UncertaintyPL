@@ -29,8 +29,8 @@ def create_tsv_file(path_in, path_out):
 
 
 def _tokenize(text):
-    return [x.lower() for x in nltk.word_tokenize(text)]
-    # return [ x.lower() for x in str(text).split() ]
+    # return [x.lower() for x in nltk.word_tokenize(text)]
+    return [ x.lower() for x in str(text).split() ]
 
 
 ''' from https://github.com/pytorch/examples/blob/master/imagenet/main.py'''

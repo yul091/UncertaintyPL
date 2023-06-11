@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_TYPE=codebert # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert
-SHIFT_TYPE=different_time # different_project, different_author, different_time
+MODEL_TYPE=graphcodebert # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert
+SHIFT_TYPE=different_project # different_project, different_author, different_time
 RES_DIR=results_new/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 
 if [ ! -d $RES_DIR ]; then
@@ -12,7 +12,11 @@ fi
 
 DATA_DIR=dataset_new/code_completion/$SHIFT_TYPE
 EPOCHS=100
-BATCH=512
+if [[ "$MODEL_TYPE" == "lstm" || "$MODEL_TYPE" == "code2vec" ]]; then
+    BATCH=512
+else
+    BATCH=16
+fi
 LR=0.001
 TRAIN_DATA=$DATA_DIR/train.tsv
 VAL_DATA=$DATA_DIR/val.tsv
@@ -30,7 +34,7 @@ echo $EXPERIMENT_NAME
 # --test_data $TEST_DATA \
 # --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
 
-CUDA_VISIBLE_DEVICES=1 python program_tasks/code_completion/main.py \
+CUDA_VISIBLE_DEVICES=0 python program_tasks/code_completion/main.py \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
   --model_type $MODEL_TYPE \

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_TYPE=codegpt # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
-SHIFT_TYPE=different_author # different_project, different_author, different_time, case_study
+MODEL_TYPE=graphcodebert # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
+SHIFT_TYPE=different_time # different_project, different_author, different_time, case_study
 RES_DIR=results_new/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
 if [ ! -d $RES_DIR ]; then
@@ -12,7 +12,11 @@ fi
 
 DATA_DIR=dataset_new/code_summary/$SHIFT_TYPE
 EPOCHS=100
-BATCH=8 # 256 for code2vec, lstm, 32 for codebert, graphcodebert
+if [[ "$MODEL_TYPE" == "lstm" || "$MODEL_TYPE" == "code2vec" ]]; then
+    BATCH=128
+else
+    BATCH=8
+fi
 LR=0.0001
 TK_PATH=$DATA_DIR/tk.pkl
 TRAIN_DATA=$DATA_DIR/train.pkl # file for training dataset
@@ -33,7 +37,7 @@ MAX_SIZE=20000 # number of training samples at each epoch
 # --test_data1 ${TEST_DATA1} --test_data2 ${TEST_DATA2} --test_data3 ${TEST_DATA3} \
 
 # echo $EXPERIMENT_NAME
-CUDA_VISIBLE_DEVICES=1 python program_tasks/code_summary/main.py \
+CUDA_VISIBLE_DEVICES=5 python program_tasks/code_summary/main.py \
   --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
   --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} \
   --model_type ${MODEL_TYPE} \
