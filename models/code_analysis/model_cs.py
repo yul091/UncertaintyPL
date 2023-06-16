@@ -5,12 +5,12 @@ from typing import List
 from preprocess.utils import count_parameters
 from transformers import (
     RobertaPreTrainedModel, 
-    RobertaModel, 
     RobertaConfig,
     GPT2Config,
     GPT2Model,
     GPT2PreTrainedModel,
 )
+from transformers.models.roberta.modeling_roberta import RobertaEmbeddings
 from models.utils import count_parameters
 
 
@@ -171,12 +171,15 @@ class BiLSTM2Vec(nn.Module):
 class CodeBert2Vec(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
+    def __init__(
+        self, 
+        config: List[RobertaConfig], 
+    ):
         super().__init__(config[0])
         config_node, config_path, config_concat = config
         self.embedding_dim = config_node.hidden_size
-        self.node_model = RobertaModel(config_node)
-        self.path_model = RobertaModel(config_path)
+        self.node_embedding = RobertaEmbeddings(config_node)
+        self.path_embedding = RobertaEmbeddings(config_path)
 
         self.W1 = nn.Parameter(
             torch.randn(1, config_node.hidden_size, config_concat.hidden_size),
@@ -194,50 +197,54 @@ class CodeBert2Vec(RobertaPreTrainedModel):
             torch.randn(1, config_node.hidden_size, 1),
             requires_grad=True,
         )
-        self.out = nn.Linear(2*config_node.hidden_size, config_concat.num_labels)
+        self.out = nn.Linear(config_node.hidden_size, config_node.num_labels)
         self.drop = nn.Dropout(config_node.hidden_dropout_prob)
         print('Created {} with {:,} params:\n{}'.format(
             self.__class__.__name__, count_parameters(self), self
         ))
         self.sub_num = [1]
-        self.init_weights()
-    
+        self.init_weights()         
+
+
     def forward(self, starts, paths, ends, length):
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
+        c = c.permute(0, 2, 1)  # B X 3H X T
         v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
         v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
-        v = torch.cat((v1, v2), dim=1) # B X 2H
+        v = v1 + v2 # B X 3H
+            
         out = self.out(v)  # B X V
         return out
 
+
     def get_hidden(self, starts, paths, ends, length):
         res = []
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
-        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
-        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
-        v = torch.cat((v1, v2), dim=1) # B X 2H
+        c = c.permute(0, 2, 1)  # B X 3H X T
+        v1 = self.attention(starts, c, W1, a1, length)
+        v2 = self.attention(starts, c, W2, a2, length)
+        v = v1 + v2 # B X 3H
+        
         res.append(v.detach().cpu())
         return res
 
@@ -246,12 +253,15 @@ class CodeBert2Vec(RobertaPreTrainedModel):
 class CodeBerta2Vec(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
+    def __init__(
+        self, 
+        config: List[RobertaConfig], 
+    ):
         super().__init__(config[0])
         config_node, config_path, config_concat = config
         self.embedding_dim = config_node.hidden_size
-        self.node_model = RobertaModel(config_node)
-        self.path_model = RobertaModel(config_path)
+        self.node_embedding = RobertaEmbeddings(config_node)
+        self.path_embedding = RobertaEmbeddings(config_path)
 
         self.W1 = nn.Parameter(
             torch.randn(1, config_node.hidden_size, config_concat.hidden_size),
@@ -269,50 +279,54 @@ class CodeBerta2Vec(RobertaPreTrainedModel):
             torch.randn(1, config_node.hidden_size, 1),
             requires_grad=True,
         )
-        self.out = nn.Linear(2*config_node.hidden_size, config_concat.num_labels)
+        self.out = nn.Linear(config_node.hidden_size, config_node.num_labels)
         self.drop = nn.Dropout(config_node.hidden_dropout_prob)
         print('Created {} with {:,} params:\n{}'.format(
             self.__class__.__name__, count_parameters(self), self
         ))
         self.sub_num = [1]
-        self.init_weights()
-    
+        self.init_weights()         
+
+
     def forward(self, starts, paths, ends, length):
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
+        c = c.permute(0, 2, 1)  # B X 3H X T
         v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
         v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
-        v = torch.cat((v1, v2), dim=1) # B X 2H
+        v = v1 + v2 # B X 3H
+            
         out = self.out(v)  # B X V
         return out
 
+
     def get_hidden(self, starts, paths, ends, length):
         res = []
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
-        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
-        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
-        v = torch.cat((v1, v2), dim=1) # B X 2H
+        c = c.permute(0, 2, 1)  # B X 3H X T
+        v1 = self.attention(starts, c, W1, a1, length)
+        v2 = self.attention(starts, c, W2, a2, length)
+        v = v1 + v2 # B X 3H
+        
         res.append(v.detach().cpu())
         return res
 
@@ -323,10 +337,11 @@ class GraphCodeBert2Vec(RobertaPreTrainedModel):
     
     def __init__(self, config: List[RobertaConfig], dropout: float = 0.1):
         super().__init__(config[0])
+
         config_node, config_path, config_concat = config
         self.embedding_dim = config_node.hidden_size
-        self.node_model = RobertaModel(config_node)
-        self.path_model = RobertaModel(config_path)
+        self.node_embedding = RobertaEmbeddings(config_node)
+        self.path_embedding = RobertaEmbeddings(config_path)
 
         self.W1 = nn.Parameter(
             torch.randn(1, config_node.hidden_size, config_concat.hidden_size),
@@ -344,51 +359,56 @@ class GraphCodeBert2Vec(RobertaPreTrainedModel):
             torch.randn(1, config_node.hidden_size, 1),
             requires_grad=True,
         )
-        self.out = nn.Linear(2*config_node.hidden_size, config_concat.num_labels)
+        self.out = nn.Linear(2*config_node.hidden_size, config_node.num_labels)
         self.drop = nn.Dropout(config_node.hidden_dropout_prob)
         print('Created {} with {:,} params:\n{}'.format(
             self.__class__.__name__, count_parameters(self), self
         ))
         self.sub_num = [1]
         self.init_weights()
+            
     
     def forward(self, starts, paths, ends, length):
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
+        c = c.permute(0, 2, 1)  # B X 3H X T
         v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
         v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
         v = torch.cat((v1, v2), dim=1) # B X 2H
+            
         out = self.out(v)  # B X V
         return out
 
+
     def get_hidden(self, starts, paths, ends, length):
+
         res = []
-        embedded_starts = self.node_model(starts)[0] # B X T X H
-        embedded_paths = self.path_model(paths)[0]
-        embedded_ends = self.node_model(ends)[0]
+        embedded_starts = self.node_embedding(starts) # B X T X H
+        embedded_paths = self.path_embedding(paths)
+        embedded_ends = self.node_embedding(ends)
         
-        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X H
+        W1 = self.W1.repeat(len(starts), 1, 1) # B X H X 3H
         a1 = self.a1.repeat(len(starts), 1, 1)  # B X H X 1
-        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X H
+        W2 = self.W2.repeat(len(starts), 1, 1) # B X H X 3H
         a2 = self.a2.repeat(len(starts), 1, 1)  # B X H X 1
         
-        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)  # B X H X 3
+        c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
-        c = c.permute(0, 2, 1)  # B X 3 X H
-        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
-        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
+        c = c.permute(0, 2, 1)  # B X 3H X T
+        v1 = self.attention(starts, c, W1, a1, length)
+        v2 = self.attention(starts, c, W2, a2, length)
         v = torch.cat((v1, v2), dim=1) # B X 2H
         res.append(v.detach().cpu())
+        
         return res
 
     

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=graphcodebert # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
+MODEL_TYPE=codebert # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
 SHIFT_TYPE=different_time # different_project, different_author, different_time, case_study
 RES_DIR=results_new/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 

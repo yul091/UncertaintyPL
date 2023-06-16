@@ -86,7 +86,7 @@ class CodeCompletion_Module(BasicModule):
                                          max_size=self.max_size)
             
             print('train loader {}, val loader {}, test loader {}'.format(
-                len(train_loader), len(val_loader), len(test_loader),
+                train_loader.n_samples, val_loader.n_samples, test_loader.n_samples,
             ))
             return train_loader, val_loader, test_loader
         else:
@@ -100,7 +100,7 @@ class CodeCompletion_Module(BasicModule):
                                           batch_size=self.train_batch_size,
                                           max_size=self.max_size)
             print('train loader {}, val loader {}, test loader1 {}, test loader2 {}, test loader3 {}'.format(
-                len(train_loader), len(val_loader), len(test_loader1), len(test_loader2), len(test_loader3),
+                train_loader.n_samples, val_loader.n_samples, test_loader1.n_samples, test_loader2.n_samples, test_loader3.n_samples,
             ))
 
             return train_loader, val_loader, test_loader1, test_loader2, test_loader3
