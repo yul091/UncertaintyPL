@@ -1,3 +1,6 @@
+notebooks/*
+scripts/*
+Figure/*
 dataset/*
 dataset_new/*
 data/*
@@ -9,6 +12,3 @@ Uncertainty_Results_new/*
 Uncertainty_Results_old/*
 Uncertainty_logging/*
 Uncertainty_logging_old/*
-notebooks/*
-scripts/*
-Figure/*

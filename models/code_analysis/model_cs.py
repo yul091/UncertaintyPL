@@ -241,8 +241,8 @@ class CodeBert2Vec(RobertaPreTrainedModel):
         c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
         c = c.permute(0, 2, 1)  # B X 3H X T
-        v1 = self.attention(starts, c, W1, a1, length)
-        v2 = self.attention(starts, c, W2, a2, length)
+        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
+        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
         v = v1 + v2 # B X 3H
         
         res.append(v.detach().cpu())
@@ -323,8 +323,8 @@ class CodeBerta2Vec(RobertaPreTrainedModel):
         c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
         c = c.permute(0, 2, 1)  # B X 3H X T
-        v1 = self.attention(starts, c, W1, a1, length)
-        v2 = self.attention(starts, c, W2, a2, length)
+        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
+        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
         v = v1 + v2 # B X 3H
         
         res.append(v.detach().cpu())
@@ -404,8 +404,8 @@ class GraphCodeBert2Vec(RobertaPreTrainedModel):
         c = torch.cat((embedded_starts, embedded_paths, embedded_ends), dim=2)
         c = self.drop(c)
         c = c.permute(0, 2, 1)  # B X 3H X T
-        v1 = self.attention(starts, c, W1, a1, length)
-        v2 = self.attention(starts, c, W2, a2, length)
+        v1 = attention(starts, c, W1, a1, length, self.embedding_dim)
+        v2 = attention(starts, c, W2, a2, length, self.embedding_dim)
         v = torch.cat((v1, v2), dim=1) # B X 2H
         res.append(v.detach().cpu())
         
