@@ -1,7 +1,7 @@
 from collections import Counter
 import pandas as pd
 import torch
-import torchwordemb
+# import torchwordemb
 from program_tasks.code_completion.util import _tokenize
 
 
@@ -34,7 +34,7 @@ class VocabBuilder(object):
         print('Original Vocab size:{}'.format(len(word_count)))
         return word_count
 
-    def get_word_index(self, min_sample=1, padding_marker='____PAD____', unknown_marker='____UNKNOW____',):
+    def get_word_index(self, min_sample=1, padding_marker='____PAD____', unknown_marker='____UNKNOW____', mask_marker='[MASK]'):
         """
         create word-to-index mapping. Padding and unknown are added to last 2 indices.
         Args:
@@ -49,7 +49,7 @@ class VocabBuilder(object):
         tokens, _ = zip(*_word_count)
 
         # inset padding and unknown
-        self.word_to_index = { tkn: i for i, tkn in enumerate([padding_marker, unknown_marker] + sorted(tokens))}
+        self.word_to_index = { tkn: i for i, tkn in enumerate([padding_marker, unknown_marker, mask_marker] + sorted(tokens))}
         print('Turncated vocab size:{} (removed:{})'.format(len(self.word_to_index),
                                                             len(self.word_count) - len(self.word_to_index)))
         return self.word_to_index, None

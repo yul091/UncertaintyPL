@@ -3,4 +3,6 @@ tensorflow
 javalang
 gdown
 transformers
+dill
+nltk
 # torchwordemb

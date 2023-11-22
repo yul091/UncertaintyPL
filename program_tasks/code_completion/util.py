@@ -29,9 +29,9 @@ def create_tsv_file(path_in, path_out, mask_token='[MASK]'):
                 writer.writerow([label, body])
 
 
-def _tokenize(text):
+def _tokenize(text: str):
     # return [x.lower() for x in nltk.word_tokenize(text)]
-    return [ x.lower() for x in str(text).split() ]
+    return text.split()
 
 
 ''' from https://github.com/pytorch/examples/blob/master/imagenet/main.py'''

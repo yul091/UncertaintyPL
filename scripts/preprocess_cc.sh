@@ -1,6 +1,6 @@
 # PROJECT=different_time # different_author, different_project, different_time, case_study
 
-for SHIFT in different_time case_study; do
+for SHIFT in different_time different_author different_project case_study; do
     if [ $SHIFT != "case_study" ]; then
         DATA_DIR=data/main/$SHIFT
     elif [ $SHIFT == "case_study" ]; then

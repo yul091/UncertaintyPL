@@ -14,6 +14,7 @@ from preprocess.checkpoint import Checkpoint
 from transformers import (
     RobertaConfig,
     GPT2Config,
+    LlamaConfig,
 )
 from program_tasks.code_completion.vocab import VocabBuilder
 from program_tasks.code_completion.dataloader import Word2vecLoader
@@ -25,6 +26,7 @@ from models.code_analysis.model_cc import (
     BiLSTMForClassification,
     CodeBertForClassification, 
     CodeGPTForClassification,
+    CodeLlamaForClassification,
 )
 
 
@@ -32,11 +34,11 @@ def preprocess_data():
     print("===> creating vocabs ...")
     train_path = args.train_data
     val_path = args.val_data
-    try:
+    if args.test_data is None:
         test_path1 = args.test_data1
         test_path2 = args.test_data2
         test_path3 = args.test_data3
-    except:
+    else:
         test_path = args.test_data
     
     pre_embedding_path = args.embedding_path
@@ -65,13 +67,13 @@ def preprocess_data():
 
     train_loader = Word2vecLoader(train_path, d_word_index, batch_size=args.batch_size)
     val_loader = Word2vecLoader(val_path, d_word_index, batch_size=args.batch_size)
-    try:
+    if args.test_data is None:
         val_loader1 = Word2vecLoader(test_path1, d_word_index, batch_size=args.batch_size)
         val_loader2 = Word2vecLoader(test_path2, d_word_index, batch_size=args.batch_size)
         val_loader3 = Word2vecLoader(test_path3, d_word_index, batch_size=args.batch_size)
         return d_word_index, embed, train_loader, val_loader, \
             val_loader1, val_loader2, val_loader3
-    except:
+    else:
         test_loader = Word2vecLoader(test_path, d_word_index, batch_size=args.batch_size)
         return d_word_index, embed, train_loader, val_loader, test_loader
 
@@ -172,6 +174,16 @@ def main(args):
                 use_cache=False, hidden_size=args.embedding_dim,
             )
             model = GraphCodeBertForClassification(config)
+        elif args.model_type == 'codellama':
+            config_class = LlamaConfig
+            pretrained_model = 'codellama/CodeLlama-7b-hf'
+            config = config_class.from_pretrained(
+                pretrained_model, num_labels=len(d_word_index), 
+                use_cache=False, hidden_size=args.embedding_dim,
+                # pad_token_id=d_word_index['____PAD____'],
+            )
+            model = CodeLlamaForClassification(config)
+            # model.resize_token_embeddings(len(d_word_index))
         else:
             raise TypeError('Undefined Model Type!')
         
@@ -201,13 +213,13 @@ def main(args):
             time_cost += (ed - st)
 
         print(epoch, 'cost time', ed - st)
-        res_val = test(val_loader, model, 'val')
-        try:
+        res_val = test(val_loader, model, 'dev')
+        if args.test_data is None:
             res1 = test(test_loader1, model, 'test1')
             res2 = test(test_loader2, model, 'test2')
             res3 = test(test_loader3, model, 'test3')
             merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
-        except:
+        else:
             res_test = test(test_loader, model, 'test')
             merge_res = {**res_val, **res_test}
         print(merge_res)
@@ -235,7 +247,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float, metavar='W', help='weight decay')
     parser.add_argument('--embedding_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--model_type', default='codebert', type=str, 
-                        choices=['codebert', 'lstm', 'codegpt', 'code2vec', 'codeberta', 'graphcodebert'], 
+                        choices=['codebert', 'lstm', 'codegpt', 'code2vec', 'codeberta', 'graphcodebert', 'codellama'], 
                         help='model architecture')
     parser.add_argument('--layers', default=2, type=int, metavar='N', help='number of rnn layers')
     parser.add_argument('--min_samples', default=5, type=int, metavar='N', help='min number of tokens')
@@ -247,10 +259,10 @@ if __name__ == '__main__':
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
     parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
     parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/val.tsv', help='model name')
-    parser.add_argument('--test_data', type=str, default='data/code_completion/different_time/test.tsv', help='model name')
-    # parser.add_argument('--test_data1', type=str, default='data/code_completion/different_time/test1.tsv', help='model name')
-    # parser.add_argument('--test_data2', type=str, default='data/code_completion/different_time/test2.tsv', help='model name')
-    # parser.add_argument('--test_data3', type=str, default='data/code_completion/different_time/test3.tsv', help='model name')
+    parser.add_argument('--test_data', type=str, default=None, help='model name')
+    parser.add_argument('--test_data1', type=str, default=None, help='model name')
+    parser.add_argument('--test_data2', type=str, default=None, help='model name')
+    parser.add_argument('--test_data3', type=str, default=None, help='model name')
     parser.add_argument('--embedding_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code_completion')
     parser.add_argument('--res_dir', type=str, default='results/code_completion')
