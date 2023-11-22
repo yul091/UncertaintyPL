@@ -1,7 +1,14 @@
-PROJECT=different_author # different_author, different_project, different_time, case_study
-DATA_DIR=data/main/$PROJECT
-DEST_DIR=dataset_new/code_completion/$PROJECT
+# PROJECT=different_time # different_author, different_project, different_time, case_study
 
-python -m program_tasks.code_completion.prepro \
-    --data_dir $DATA_DIR \
-    --dest_dir $DEST_DIR
+for SHIFT in different_time case_study; do
+    if [ $SHIFT != "case_study" ]; then
+        DATA_DIR=data/main/$SHIFT
+    elif [ $SHIFT == "case_study" ]; then
+        DATA_DIR=data/case_study
+    fi
+    DEST_DIR=dataset/code_completion/$SHIFT
+
+    python -B -m program_tasks.code_completion.prepro \
+        --data_dir $DATA_DIR \
+        --dest_dir $DEST_DIR
+done

@@ -1,6 +1,7 @@
 import csv
 import nltk
 import random
+from tqdm import tqdm
 
 LABEL_TO_INDEX = {
     'business':                  0,
@@ -14,17 +15,17 @@ LABEL_TO_INDEX = {
 }
 
 
-def create_tsv_file(path_in, path_out):
+def create_tsv_file(path_in, path_out, mask_token='[MASK]'):
     with open(path_in,'r') as f, open(path_out,'w') as fw:
         writer = csv.writer(fw, delimiter='\t')
         writer.writerow(['label','body'])
-        for line in f:
-            print("line: ", line)
+        for line in tqdm(f):
+            # print("line: ", line)
             if line.strip() != '':
                 mask_idx = random.randint(0, len(line.split()) - 1)
                 tokens = [x.lower() for x in line.split()]
                 label = tokens[mask_idx]
-                body = ' '.join(tokens[:mask_idx]) + ' [MASK] ' + ' '.join(tokens[mask_idx + 1:])
+                body = ' '.join(tokens[:mask_idx] + [mask_token] + tokens[mask_idx+1:])
                 writer.writerow([label, body])
 
 

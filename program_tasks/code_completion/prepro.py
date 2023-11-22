@@ -7,17 +7,28 @@ import torch
 from program_tasks.code_completion.util import create_tsv_file
 from collections import defaultdict
 import tokenize
+import random
 
 
-def parse_java(src_folder, dest_dir, dest_file_name, token_dict):
+def parse_java(src_folder: str, dest_dir: str, dest_file_name: str, token_dict: dict):
+    """
+    src_folder: data/main/different_project/train
+    dest_dir: dataset/code_completion/different_project
+    dest_file_name: train.txt
+    token_dict: {}
+    """
     token_dict[dest_file_name] = defaultdict(int)
 
     with open(os.path.join(dest_dir, dest_file_name), 'w') as write_file:
         for f in os.listdir(src_folder):
             subfolder = os.path.join(src_folder, f)
             if os.path.isdir(subfolder): # train/project_name/java
-                print('tokenizing java code in {} ...'.format(subfolder))
-                for file_path in tqdm(os.listdir(subfolder)):
+                print('Tokenizing java snippets in {} ...'.format(subfolder))
+                project_file_list = os.listdir(subfolder)
+                if 'different_time' in dest_dir:
+                    print("[TIMELINE SHIFT] only using 40 percent of the files !")
+                    project_file_list = random.sample(project_file_list, int(len(project_file_list) * 0.4))
+                for file_path in tqdm(project_file_list):
                     if file_path.endswith(".java"):
                         try:
                             file = open(os.path.join(subfolder, file_path), 'r', encoding='utf-8')
@@ -38,6 +49,7 @@ def parse_java(src_folder, dest_dir, dest_file_name, token_dict):
                         # write new line each time, unicode escape
                         write_file.write(
                             token_str.encode('unicode_escape').decode('utf-8') + '\n')
+                        
             else: # project_name/java
                 if subfolder.endswith(".java"):
                     file = open(os.path.join(subfolder, file_path), 'r')
@@ -93,13 +105,15 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=str, default='data/main/different_project', help='Input dataset directory')
-    parser.add_argument("--dest_dir", type=str, default='dataset_new/code_completion/different_project', help='Output dataset directory')
+    parser.add_argument("--dest_dir", type=str, default='dataset/code_completion/different_project', help='Output dataset directory')
     args = parser.parse_args()
     ###############################################################################
+    random.seed(42)
+    
     # Handle java files
     data_dir = args.data_dir
     dest_dir = args.dest_dir
-    data_type = ['train', 'val', 'test1', 'test2', 'test3']
+    data_type = ['train', 'dev', 'test1', 'test2', 'test3'] if 'case_study' not in data_dir else ['train', 'dev', 'test']
     # data_dir = 'data/case_study'
     # data_type = ['train', 'val', 'test']
     java_dict = {
@@ -112,11 +126,13 @@ if __name__ == '__main__':
 
     for name, src in java_dict.items():
         parse_java(src, dest_dir, name, token_dict)
+        # Generate .txt files
 
     for name in java_dict:
         origin_file = os.path.join(dest_dir, name)
         dest_file = origin_file.rstrip('.txt') + '.tsv'
         create_tsv_file(origin_file, dest_file)
+        # Generate .tsv files
 
     # save token dict
     torch.save(token_dict, os.path.join(dest_dir, 'token_hist.res'))
