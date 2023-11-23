@@ -55,7 +55,7 @@ class BasicModule:
                 self.test_path2 = os.path.join(data_dir, 'test2.tsv')
                 self.test_path3 = os.path.join(data_dir, 'test3.tsv')
             
-            self.val_path = os.path.join(data_dir, 'val.tsv')
+            self.val_path = os.path.join(data_dir, 'dev.tsv')
             self.min_samples = 5
         else:
             raise TypeError()

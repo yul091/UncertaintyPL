@@ -5,4 +5,5 @@ gdown
 transformers
 dill
 nltk
+scikit-learn
 # torchwordemb

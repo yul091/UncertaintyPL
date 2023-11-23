@@ -26,15 +26,15 @@ if __name__ == '__main__':
         CodeCompletion_Module,
     ]
     MetricList = [
-        Vanilla,
-        ModelWithTemperature,
+        # Vanilla,
+        # ModelWithTemperature,
         PVScore,
         ModelActivateDropout,
         Entropy,
         Mutation,
     ]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    module_id = args.module_id
+    module_id: int = args.module_id
     res_dir = args.res_dir
     save_dir = args.save_dir
     data_dir = args.data_dir

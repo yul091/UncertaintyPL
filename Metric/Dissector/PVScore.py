@@ -39,8 +39,8 @@ class PVScore(BasicUncertainty):
         #     self.train_sub_model(lr=1e-2, epoch=10)
 
     def cal_svc(self, pred_vec, original_pred):
-        pred_vec = self.softmax(pred_vec)
-        print('pred_vec size: ', pred_vec.size())
+        pred_vec = self.softmax(pred_vec) # shape: [batch_size, class_num]
+        # print('pred_vec size: ', pred_vec.size())
         pred_order = torch.argsort(pred_vec, dim=1)
         sub_pred = pred_order[:, -1]
         sec_pos = pred_order[:, -2]
@@ -112,12 +112,12 @@ class PVScore(BasicUncertainty):
                 module_id=self.module_id
             )
             acc = common_cal_accuracy(pred_y, self.train_y)
-            print('feature number for sub-model is', len(sub_res[0]), 'finish training the sub-model', sub_num[i],
-                  'for ', self.instance.__class__.__name__, 'accuracy is', acc)
+            print('feature number for sub-model is', len(sub_res[0]), ', finish training the sub-model', sub_num[i],
+                  'for', self.instance.__class__.__name__, ', accuracy is', acc.item())
 
             save_path = self.get_submodel_path(sub_num[i])
             torch.save(linear, save_path)
-            print('save sub model in ', save_path)
+            print('save sub model in', save_path)
 
     def get_submodel_path(self, index):
         if not os.path.isdir(self.save_dir):

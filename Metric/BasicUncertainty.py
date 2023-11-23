@@ -100,7 +100,7 @@ class BasicUncertainty(nn.Module):
             test_score = self._uncertainty_calculate(self.test_loader)
             result = {
                 'train': train_score,
-                'val': val_score,
+                'dev': val_score,
                 'test': test_score
             }
         else:
@@ -109,7 +109,7 @@ class BasicUncertainty(nn.Module):
             test_score3 = self._uncertainty_calculate(self.test_loader3)
             result = {
                 'train': train_score,
-                'val': val_score,
+                'dev': val_score,
                 'test1': test_score1,
                 'test2': test_score2,
                 'test3': test_score3

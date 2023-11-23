@@ -237,6 +237,9 @@ class CodeLlamaForClassification(LlamaPreTrainedModel):
         self.model = LlamaModel(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
         self.sub_num = [1, 3, 5, 7, 9]
+        print('Created {} with {:,} params:\n{}'.format(
+            self.__class__.__name__, count_parameters(self), self
+        ))
         # Initialize weights and apply final processing
         self.post_init()
         
@@ -272,8 +275,8 @@ class CodeLlamaForClassification(LlamaPreTrainedModel):
     def get_hidden(self, input_ids: torch.LongTensor,):
         res = []
         batch_size = input_ids.shape[0]
-        if self.config.pad_token_id is None and batch_size != 1:
-            raise ValueError("Cannot handle batch sizes > 1 if no padding token is defined.")
+        # if self.config.pad_token_id is None and batch_size != 1:
+        #     raise ValueError("Cannot handle batch sizes > 1 if no padding token is defined.")
         if self.config.pad_token_id is None:
             sequence_lengths = -1
         else:
@@ -283,9 +286,9 @@ class CodeLlamaForClassification(LlamaPreTrainedModel):
         
         # Get the 1, 3, 5, 7, 9-th layer hidden states
         transformer_outputs = self.model(input_ids, output_hidden_states=True)
-        hidden_states = transformer_outputs[2] # sub_models X B X T X H
+        hidden_states = transformer_outputs['hidden_states'] # sub_models X B X T X H
         for i in range(len(self.sub_num)):
-            hidden_state = hidden_states[self.sub_num[i]] # B X T X H
+            hidden_state = hidden_states[self.sub_num[i]+1] # B X T X H
             hidden_state = hidden_state[torch.arange(batch_size, device=hidden_state.device), sequence_lengths] # B X H
             res.append(hidden_state.detach().cpu())
         

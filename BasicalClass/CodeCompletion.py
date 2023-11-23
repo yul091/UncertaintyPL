@@ -42,7 +42,7 @@ class CodeCompletion_Module(BasicModule):
             self.save_truth()
             print(
                 'construct the module {}: '.format(self.__class__.__name__), 
-                'train acc %0.4f, val acc %0.4f, test acc %0.4f' % (
+                'train acc %0.4f, dev acc %0.4f, test acc %0.4f' % (
                     self.train_acc, self.val_acc, self.test_acc)
             )
         else:
@@ -52,7 +52,7 @@ class CodeCompletion_Module(BasicModule):
             self.save_truth()
             print(
                 'construct the module {}: '.format(self.__class__.__name__), 
-                'train acc %0.4f, val acc %0.4f, test1 acc %0.4f, test2 acc %0.4f, test3 acc %0.4f' % (
+                'train acc %0.4f, dev acc %0.4f, test1 acc %0.4f, test2 acc %0.4f, test3 acc %0.4f' % (
                     self.train_acc, self.val_acc, self.test_acc1, self.test_acc2, self.test_acc3)
             )
 
@@ -85,7 +85,7 @@ class CodeCompletion_Module(BasicModule):
                                          batch_size=self.train_batch_size,
                                          max_size=self.max_size)
             
-            print('train loader {}, val loader {}, test loader {}'.format(
+            print('train loader {}, dev loader {}, test loader {}'.format(
                 train_loader.n_samples, val_loader.n_samples, test_loader.n_samples,
             ))
             return train_loader, val_loader, test_loader
@@ -99,7 +99,7 @@ class CodeCompletion_Module(BasicModule):
             test_loader3 = Word2vecLoader(self.test_path3, d_word_index, 
                                           batch_size=self.train_batch_size,
                                           max_size=self.max_size)
-            print('train loader {}, val loader {}, test loader1 {}, test loader2 {}, test loader3 {}'.format(
+            print('train loader {}, dev loader {}, test loader1 {}, test loader2 {}, test loader3 {}'.format(
                 train_loader.n_samples, val_loader.n_samples, test_loader1.n_samples, test_loader2.n_samples, test_loader3.n_samples,
             ))
 
