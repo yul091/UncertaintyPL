@@ -1,5 +1,5 @@
 tensorflow
-# pytorch
+torch==1.13.1
 javalang
 gdown
 transformers

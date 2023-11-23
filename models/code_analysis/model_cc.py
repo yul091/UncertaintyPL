@@ -239,7 +239,12 @@ class CodeLlamaForClassification(LlamaPreTrainedModel):
         self.sub_num = [1, 3, 5, 7, 9]
         # Initialize weights and apply final processing
         self.post_init()
+        
+    def get_input_embeddings(self):
+        return self.model.embed_tokens
 
+    def set_input_embeddings(self, value):
+        self.model.embed_tokens = value
 
     def forward(
         self,
