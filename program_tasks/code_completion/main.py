@@ -225,11 +225,11 @@ def main(args):
         print(merge_res)
 
         # Save best model checkpoint
-        if res_val['val acc'] > best_val_acc:
+        if res_val['dev acc'] > best_val_acc:
             if best_ckpt_dir is not None:
                 shutil.rmtree(best_ckpt_dir)
             Checkpoint(model, optimizer, epoch, merge_res).save(args.res_dir)
-            best_val_acc = res_val['val acc']
+            best_val_acc = res_val['dev acc']
             best_ckpt_dir = Checkpoint.get_latest_checkpoint(args.res_dir)
 
     print('Avg time cost', time_cost / args.epochs)
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight_name', type=str, default='1', help='model name')
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
     parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
-    parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/val.tsv', help='model name')
+    parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/dev.tsv', help='model name')
     parser.add_argument('--test_data', type=str, default=None, help='model name')
     parser.add_argument('--test_data1', type=str, default=None, help='model name')
     parser.add_argument('--test_data2', type=str, default=None, help='model name')

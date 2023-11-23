@@ -1,5 +1,5 @@
 notebooks/*
-scripts/*
+# scripts/*
 Figure/*
 dataset/*
 dataset_new/*

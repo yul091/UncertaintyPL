@@ -265,9 +265,9 @@ class CodeLlamaForClassification(LlamaPreTrainedModel):
         logits = self.score(hidden_states) # B X T X V
 
         pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths] # B X V
-        print("output shape: ", pooled_logits.shape)
-
+        # print("output shape: ", pooled_logits.shape)
         return pooled_logits
+    
     
     def get_hidden(self, input_ids: torch.LongTensor,):
         res = []
