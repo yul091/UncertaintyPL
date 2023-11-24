@@ -25,9 +25,9 @@ def parse_java(src_folder: str, dest_dir: str, dest_file_name: str, token_dict: 
             if os.path.isdir(subfolder): # train/project_name/java
                 print('Tokenizing java snippets in {} ...'.format(subfolder))
                 project_file_list = os.listdir(subfolder)
-                if 'different_time' in dest_dir:
-                    print("[TIMELINE SHIFT] only using 40 percent of the files !")
-                    project_file_list = random.sample(project_file_list, int(len(project_file_list) * 0.4))
+                if 'different_time' in dest_dir or 'different_project' in dest_dir:
+                    print("[TIMELINE SHIFT] only using 10% of files !")
+                    project_file_list = random.sample(project_file_list, int(len(project_file_list) * 0.1))
                 for file_path in tqdm(project_file_list):
                     if file_path.endswith(".java"):
                         try:

@@ -144,7 +144,7 @@ def main(args):
             config_class = RobertaConfig
             pretrained_model = 'microsoft/codebert-base'
             config = config_class.from_pretrained(
-                pretrained_model, num_labels=len(d_word_index), 
+                pretrained_model, num_labels=vocab_size, 
                 use_cache=False, hidden_size=args.embedding_dim,
             )
             model = CodeBertForClassification(config)
@@ -152,7 +152,7 @@ def main(args):
             config_class = GPT2Config
             pretrained_model = 'microsoft/CodeGPT-small-java-adaptedGPT2'
             config = config_class.from_pretrained(
-                pretrained_model, num_labels=len(d_word_index), 
+                pretrained_model, num_labels=vocab_size, 
                 use_cache=False, n_embd=args.embedding_dim,
             )
             model = CodeGPTForClassification(config)
@@ -162,7 +162,7 @@ def main(args):
             config_class = RobertaConfig
             pretrained_model = 'huggingface/CodeBERTa-small-v1'
             config = config_class.from_pretrained(
-                pretrained_model, num_labels=len(d_word_index), 
+                pretrained_model, num_labels=vocab_size, 
                 use_cache=False, hidden_size=args.embedding_dim,
             )
             model = CodeBertaForClassification(config)
@@ -170,7 +170,7 @@ def main(args):
             config_class = RobertaConfig
             pretrained_model = 'microsoft/graphcodebert-base'
             config = config_class.from_pretrained(
-                pretrained_model, num_labels=len(d_word_index), 
+                pretrained_model, num_labels=vocab_size, 
                 use_cache=False, hidden_size=args.embedding_dim,
             )
             model = GraphCodeBertForClassification(config)
@@ -178,12 +178,10 @@ def main(args):
             config_class = LlamaConfig
             pretrained_model = 'codellama/CodeLlama-7b-hf'
             config = config_class.from_pretrained(
-                pretrained_model, num_labels=len(d_word_index), 
+                pretrained_model, num_labels=vocab_size, 
                 use_cache=False, hidden_size=args.embedding_dim,
-                # pad_token_id=d_word_index['____PAD____'],
             )
             model = CodeLlamaForClassification(config)
-            # model.resize_token_embeddings(len(d_word_index))
         else:
             raise TypeError('Undefined Model Type!')
         

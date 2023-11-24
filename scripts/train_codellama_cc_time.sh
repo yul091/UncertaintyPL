@@ -12,12 +12,8 @@ fi
 
 DATA_DIR=dataset/code_completion/$SHIFT_TYPE
 EPOCHS=100
-if [[ "$MODEL_TYPE" == "lstm" || "$MODEL_TYPE" == "code2vec" ]]; then
-    BATCH=512
-else
-    BATCH=2
-fi
-LR=0.001
+BATCH=32
+LR=2e-5
 TRAIN_DATA=$DATA_DIR/train.tsv
 VAL_DATA=$DATA_DIR/dev.tsv
 TEST_DATA1=$DATA_DIR/test1.tsv

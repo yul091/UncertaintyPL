@@ -12,12 +12,8 @@ fi
 
 DATA_DIR=dataset/code_completion/$SHIFT_TYPE
 EPOCHS=100
-if [[ "$MODEL_TYPE" == "lstm" || "$MODEL_TYPE" == "code2vec" ]]; then
-    BATCH=512
-else
-    BATCH=2
-fi
-LR=0.001
+BATCH=100
+LR=2e-5
 TRAIN_DATA=$DATA_DIR/train.tsv
 VAL_DATA=$DATA_DIR/dev.tsv
 TEST_DATA1=$DATA_DIR/test1.tsv
@@ -31,7 +27,7 @@ EXPERIMENT_NAME=code_completion
 EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 echo $EXPERIMENT_NAME
 
-CUDA_VISIBLE_DEVICES=7 python -B -m program_tasks.code_completion.main \
+CUDA_VISIBLE_DEVICES=1 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
   --model_type $MODEL_TYPE \
