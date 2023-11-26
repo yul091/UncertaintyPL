@@ -56,7 +56,6 @@ class ModelWithTemperature(BasicUncertainty):
         logits_list = []
         labels_list = []
         with torch.no_grad():
-
             if self.module_id == 0: # code summary
                 for i, ((sts, paths, eds), y, length) in enumerate(valid_loader):
                     torch.cuda.empty_cache()

@@ -70,7 +70,7 @@ def common_predict(data_loader, model, device, train_sub=False, module_id=0):
 
             if module_id == 0: # code summary
                 # print('calculating code summary ...')
-                for i, ((sts, paths, eds), y, length) in enumerate(data_loader):
+                for i, ((sts, paths, eds), y, length) in tqdm(enumerate(data_loader), total=len(data_loader)):
                     torch.cuda.empty_cache()
                     sts = sts.to(device)
                     paths = paths.to(device)
@@ -95,7 +95,7 @@ def common_predict(data_loader, model, device, train_sub=False, module_id=0):
             
             elif module_id == 1: # code completion
                 # print('calculating code completion ...')
-                for i, (input, y, _) in tqdm(enumerate(data_loader)):
+                for i, (input, y, _) in tqdm(enumerate(data_loader), total=len(data_loader)):
                     torch.cuda.empty_cache()
                     input = input.to(device)
                     # compute output
