@@ -16,7 +16,8 @@ class Mahalanobis(BasicUncertainty):
 
     def train_logic(self, data_loader, ground_truth):
         train_res = self.extract_metric(data_loader)
-        train_res = train_res.reshape([-1, self.hidden_num])
+        train_res = train_res.reshape([-1, self.hidden_num]) # N X D
+        print("train_res: ", train_res.shape)
         lr = LogisticRegression(C=1.0, penalty='l2', tol=0.01)
         lr.fit(train_res, ground_truth)
         print(lr.score(train_res, ground_truth))
@@ -33,11 +34,12 @@ class Mahalanobis(BasicUncertainty):
             u_list.append(mean_val.cpu())
             # std_list.append(std_val)
             if std_value is None:
-                std_value = std_val 
+                std_value = std_val
             else:
-                std_value += std_val / len(y)
+                std_value += std_val
             
         # std_value = sum(std_list) / len(y)
+        std_value /= len(y)
         std_value = torch.inverse(std_value)
         return u_list, std_value
 
@@ -87,19 +89,24 @@ class Mahalanobis(BasicUncertainty):
         # return torch.cat(pred_list, dim=0), torch.cat(y_list, dim=0)
         return torch.cat(pred_pos, dim=0), torch.cat(y_list, dim=0)
 
-    def extract_metric(self, data_loader):
+    def extract_metric(self, data_loader, mini_batch: int = 1000):
         print("Extracting metric...")
-        fx, _ = self.get_penultimate(data_loader)
+        fx, _ = self.get_penultimate(data_loader) # N X V, N
         fx = fx.to(self.device)
         score = []
-        for target in tqdm(range(self.class_num)):
-            u = self.u_list[target].to(self.device)
-            tmp = (fx - u).mm(self.std_value)
-            tmp = tmp.mm((fx - u).transpose(dim0=0, dim1=1))
-            tmp = tmp.diagonal().reshape([-1, 1])
-            score.append(-tmp.cpu())
-        score = torch.cat(score, dim=1)
-        score = common_ten2numpy(torch.max(score, dim=1)[0])
+        for i in tqdm(range(0, fx.shape[0], mini_batch)):
+            fx_batch = fx[i:i + mini_batch] # mini_batch X V
+            score_batch = []
+            for target in range(self.class_num):
+                u = self.u_list[target].to(self.device) # V
+                tmp = (fx_batch - u).mm(self.std_value) # mini_batch X V
+                tmp = tmp.mm((fx_batch - u).transpose(dim0=0, dim1=1)) # mini_batch X mini_batch
+                tmp = tmp.diagonal().reshape([-1, 1]) # mini_batch X 1
+                score_batch.append(-tmp.cpu())
+            score.append(torch.cat(score_batch, dim=1)) # mini_batch X V
+                
+        score = torch.cat(score, dim=0) # N X C
+        score = common_ten2numpy(torch.max(score, dim=1)[0]) # N
         return score
 
     def _uncertainty_calculate(self, data_loader):

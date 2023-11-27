@@ -3,7 +3,7 @@
 ###################################################################################
 MODULE_ID=1 # 1 is code completion
 MODEL_TYPE=codellama # lstm, codebert, codegpt, code2vec, codeberta, graphcodebert, codellama
-SHIFT_TYPE=case_study # different_time, different_project, different_author
+SHIFT_TYPE=different_project # different_time, different_project, different_author
 DATA_DIR=dataset/code_completion/$SHIFT_TYPE
 RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 SAVE_DIR=Uncertainty_Results/$SHIFT_TYPE/$MODEL_TYPE
@@ -25,7 +25,7 @@ else
   echo dir exist
 fi
 
-CUDA_VISIBLE_DEVICES=5 python test_uncertainty.py \
+CUDA_VISIBLE_DEVICES=3 python test_uncertainty.py \
   --module_id $MODULE_ID --res_dir $RES_DIR \
   --data_dir $DATA_DIR --save_dir $SAVE_DIR \
   --train_batch_size $TRAIN_BATCH_SIZE \
