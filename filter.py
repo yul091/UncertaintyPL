@@ -58,7 +58,7 @@ class Filter:
         if module_id == 0: # code summary
             self.tk_path = os.path.join(self.data_dir, 'tk.pkl')
             self.train_path = os.path.join(self.data_dir, 'train.pkl')
-            self.val_path = os.path.join(self.data_dir, 'val.pkl')
+            self.val_path = os.path.join(self.data_dir, 'dev.pkl')
             if shift:
                 self.test_path = None
                 self.test1_path = os.path.join(self.data_dir, 'test1.pkl')
@@ -72,7 +72,7 @@ class Filter:
         else: # code completion
             self.tk_path = None
             self.train_path = os.path.join(self.data_dir, 'train.tsv')
-            self.val_path = os.path.join(self.data_dir, 'val.tsv')
+            self.val_path = os.path.join(self.data_dir, 'dev.tsv')
             if shift:
                 self.test_path = None
                 self.test1_path = os.path.join(self.data_dir, 'test1.tsv')
@@ -220,10 +220,10 @@ class Filter:
         ))
 
 
-    def filtering(self, res, threshold, testset='val'):
+    def filtering(self, res, threshold, testset='dev'):
         original_size = len(self.vanilla[testset])
         # remain_size = int(coverage * original_size)
-        if testset == 'val':
+        if testset == 'dev':
             data_path = self.val_path
         elif testset == 'test1':
             data_path = self.test1_path
@@ -311,19 +311,20 @@ class Filter:
             scores = UE_scores[testset][0]
         else:
             scores = UE_scores[testset]
-            
+        
+        truth_testset = testset if testset != 'dev' else 'val'
         idx = np.argsort(scores)[::-1][:remain_size]
         threshold = scores[idx[-1]]
         auc = self.common_get_auc(
-            self.truth[testset][idx], 
+            self.truth[truth_testset][idx], 
             scores[idx],
         )
         aupr = self.common_get_aupr(
-            self.truth[testset][idx], 
+            self.truth[truth_testset][idx], 
             scores[idx],
         )
         brier = self.common_get_brier(
-            self.truth[testset][idx], 
+            self.truth[truth_testset][idx], 
             scores[idx],
         )
         if self.module_id == 0: # code summary
@@ -367,10 +368,10 @@ class Filter:
         ))
 
         
-    def coverage_filtering(self, res, coverage, testset='val'):
+    def coverage_filtering(self, res, coverage, testset='dev'):
         original_size = len(self.vanilla[testset])
         remain_size = int(coverage * original_size)
-        if testset == 'val':
+        if testset == 'dev':
             data_path = self.val_path
         elif testset == 'test1':
             data_path = self.test1_path
@@ -462,9 +463,9 @@ class Filter:
             }
 
         if self.shift:
-            testsets = ['val', 'test1', 'test2', 'test3']
+            testsets = ['dev', 'test1', 'test2', 'test3']
         else:
-            testsets = ['val', 'test']
+            testsets = ['dev', 'test']
         for testset in testsets:
             res['vanilla'][testset] = defaultdict(list)
             res['temperature'][testset] = defaultdict(list)
@@ -532,10 +533,7 @@ if __name__ == "__main__":
     res_dir = f'{model_dir}/{task}/{shift_type}/{model_type}'
     metric_dir = f'{uncertainty_dir}/{shift_type}/{model_type}/{module}'
     save_dir = f'{out_dir}/{shift_type}/{model_type}/{module}'
-    if task == 'code_summary':
-        data_dir = f'{dataset_dir}/{task}/{shift_type}/java_pkl'
-    else:
-        data_dir = f'{dataset_dir}/{task}/{shift_type}/java_project'
+    data_dir = f'{dataset_dir}/{task}/{shift_type}'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
