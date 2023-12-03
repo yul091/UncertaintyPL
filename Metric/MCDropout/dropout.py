@@ -37,7 +37,7 @@ class ModelActivateDropout(BasicUncertainty):
                 eds = eds.to(self.device)
                 y = torch.tensor(y, dtype=torch.long)
                 output = model(starts=sts, paths=paths, ends=eds, length=length)
-                _, pred_y = torch.max(output, dim=1)
+                _, pred_y = torch.max(output, dim=1) # shape: N
                 # detach
                 sts = sts.detach().cpu()
                 paths = paths.detach().cpu()
@@ -72,19 +72,23 @@ class ModelActivateDropout(BasicUncertainty):
 
     @staticmethod
     def label_chgrate(orig_pred, prediction):
-        _, repeat_num = np.shape(prediction)
-        tmp = np.tile(orig_pred.reshape([-1, 1]), (1, repeat_num))
+        """
+        orig_pred: N
+        prediction: N X iter_time
+        """
+        _, repeat_num = np.shape(prediction) # N, iter_time
+        tmp = np.tile(orig_pred.reshape([-1, 1]), (1, repeat_num)) # N X iter_time
         return np.sum(tmp == prediction, axis=1, dtype=np.float) / repeat_num
 
     def _uncertainty_calculate(self, data_loader):
         self.model.eval()
-        _, orig_pred, _ = self._predict_result(data_loader, self.model)
+        _, orig_pred, _ = self._predict_result(data_loader, self.model) # N
         mc_result = []
         print('calculating uncertainty ...')
         self.model.train()
         for i in tqdm(range(self.iter_time)):
-            _, res, _ = self._predict_result(data_loader, self.model)
-            mc_result.append(common_ten2numpy(res).reshape([-1, 1]))
-        mc_result = np.concatenate(mc_result, axis=1)
+            _, res, _ = self._predict_result(data_loader, self.model) # N
+            mc_result.append(common_ten2numpy(res).reshape([-1, 1])) # N X 1
+        mc_result = np.concatenate(mc_result, axis=1) # N X iter_time
         score = self.label_chgrate(orig_pred, mc_result)
         return score

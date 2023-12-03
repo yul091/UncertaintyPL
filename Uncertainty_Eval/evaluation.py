@@ -62,17 +62,17 @@ class Uncertainty_Eval():
 
     def cal_mUncertainty(self, metric_name, metric_res, eval_res):
         if metric_name not in ['Mutation', 'PVScore']:
-            mU_val = np.mean(metric_res['val'])
+            mU_val = np.mean(metric_res['dev'])
             if self.ood:
                 mU_ood = np.mean(metric_res['ood'])
             if not self.shift:
                 mU_test = np.mean(metric_res['test'])
                 if not self.ood:
                     print('%s: \nmUncertainty: val: %.4f, test: %.4f' % (metric_name, mU_val, mU_test))
-                    eval_res[metric_name]['mUncertain'] = {'val': mU_val, 'test': mU_test}
+                    eval_res[metric_name]['mUncertain'] = {'dev': mU_val, 'test': mU_test}
                 else:
                     print('%s: \nmUncertainty: val: %.4f, test: %.4f, ood: %.4f' % (metric_name, mU_val, mU_test, mU_ood))
-                    eval_res[metric_name]['mUncertain'] = {'val': mU_val, 'test': mU_test, 'ood': mU_ood}
+                    eval_res[metric_name]['mUncertain'] = {'dev': mU_val, 'test': mU_test, 'ood': mU_ood}
             else:
                 mU_test1 = np.mean(metric_res['test1'])
                 mU_test2 = np.mean(metric_res['test2'])
@@ -82,7 +82,7 @@ class Uncertainty_Eval():
                         metric_name, mU_val, mU_test1, mU_test2, mU_test3
                     ))
                     eval_res[metric_name]['mUncertain'] = {
-                        'val': mU_val, 'test1': mU_test1,
+                        'dev': mU_val, 'test1': mU_test1,
                         'test2': mU_test2, 'test3': mU_test3,
                     }
                 else:
@@ -90,12 +90,12 @@ class Uncertainty_Eval():
                         metric_name, mU_val, mU_test1, mU_test2, mU_test3, mU_ood
                     ))
                     eval_res[metric_name]['mUncertain'] = {
-                        'val': mU_val, 'test1': mU_test1,
+                        'dev': mU_val, 'test1': mU_test1,
                         'test2': mU_test2, 'test3': mU_test3, 'ood': mU_ood
                     }
         else:
             # average uncertainty
-            mU_vals = [np.mean(res) for res in metric_res['val']]
+            mU_vals = [np.mean(res) for res in metric_res['dev']]
             if self.ood:
                 mU_oods = [np.mean(res) for res in metric_res['ood']]
             if not self.shift:
@@ -108,7 +108,7 @@ class Uncertainty_Eval():
                             metric_name, count, mU_val, mU_test
                         ))
                     eval_res[metric_name]['mUncertain'] = [
-                        {'val': mU_val, 'test': mU_test}
+                        {'dev': mU_val, 'test': mU_test}
                         for mU_val, mU_test in zip(mU_vals, mU_tests)
                     ]
                 else:
@@ -118,7 +118,7 @@ class Uncertainty_Eval():
                             metric_name, count, mU_val, mU_test, mU_ood
                         ))
                     eval_res[metric_name]['mUncertain'] = [
-                        {'val': mU_val, 'test': mU_test, 'ood': mU_ood}
+                        {'dev': mU_val, 'test': mU_test, 'ood': mU_ood}
                         for mU_val, mU_test in zip(mU_vals, mU_tests, mU_oods)
                     ]
             else:
@@ -133,7 +133,7 @@ class Uncertainty_Eval():
                             metric_name, count, mU_val, mU1, mU2, mU3
                         ))
                     eval_res[metric_name]['mUncertain'] = [
-                        {'val': mU_val, 'test1': mU1, 'test2': mU2, 'test3': mU3}
+                        {'dev': mU_val, 'test1': mU1, 'test2': mU2, 'test3': mU3}
                         for mU_val, mU1, mU2, mU3 in zip(mU_vals, mU1s, mU2s, mU3s)
                     ]
                 else:
@@ -143,18 +143,18 @@ class Uncertainty_Eval():
                             metric_name, count, mU_val, mU1, mU2, mU3, mU_ood
                         ))
                     eval_res[metric_name]['mUncertain'] = [
-                        {'val': mU_val, 'test1': mU1, 'test2': mU2, 'test3': mU3, 'ood': mU_ood}
+                        {'dev': mU_val, 'test1': mU1, 'test2': mU2, 'test3': mU3, 'ood': mU_ood}
                         for mU_val, mU1, mU2, mU3, mU_ood in zip(mU_vals, mU1s, mU2s, mU3s, mU_oods)
                     ]
 
 
     def cal_metric(self, metric_name, truth, metric_res, eval_res, metric='AUC'):
         if metric_name not in ['Mutation', 'PVScore']:
-            metric_val = self.common_cal(truth['val'], metric_res['val'], metric)
+            metric_val = self.common_cal(truth['val'], metric_res['dev'], metric)
             if not self.shift:
                 metric_test = self.common_cal(truth['test'], metric_res['test'], metric)
                 print('%s: val: %.4f, test: %.4f' % (metric, metric_val, metric_test))
-                eval_res[metric_name][metric] = {'val': metric_val, 'test': metric_test}
+                eval_res[metric_name][metric] = {'dev': metric_val, 'test': metric_test}
             else:
                 metric_test1 = self.common_cal(truth['test1'], metric_res['test1'], metric)
                 metric_test2 = self.common_cal(truth['test2'], metric_res['test2'], metric)
@@ -163,12 +163,12 @@ class Uncertainty_Eval():
                     metric, metric_val, metric_test1, metric_test2, metric_test3
                 ))
                 eval_res[metric_name][metric] = {
-                    'val': metric_val, 'test1': metric_test1, 
+                    'dev': metric_val, 'test1': metric_test1, 
                     'test2': metric_test2, 'test3': metric_test3,
                 }
         else: # we pick the best eval result for PVScore and Mutation
             metric_vals = [
-                self.common_cal(truth['val'], res, metric) for res in metric_res['val']
+                self.common_cal(truth['val'], res, metric) for res in metric_res['dev']
             ]
             if not self.shift:
                 metric_tests = [
@@ -181,7 +181,7 @@ class Uncertainty_Eval():
                         metric, count, metric_val, metric_test
                     ))
                 eval_res[metric_name][metric] = [
-                    {'val': metric_val, 'test': metric_test} 
+                    {'dev': metric_val, 'test': metric_test} 
                     for metric_val, metric_test in zip(metric_vals, metric_tests)
                 ]
             else:
@@ -201,7 +201,7 @@ class Uncertainty_Eval():
                         metric, count, metric_val, mt1, mt2, mt3
                     ))
                 eval_res[metric_name][metric] = [
-                    {'val': metric_val, 'test1': mt1, 'test2': mt2, 'test3': mt3}
+                    {'dev': metric_val, 'test1': mt1, 'test2': mt2, 'test3': mt3}
                     for metric_val, mt1, mt2, mt3 in zip(metric_vals, mts1, mts2, mts3)
                 ]
 
@@ -251,20 +251,20 @@ class Uncertainty_Eval():
         
         if not self.shift:
             print('train_acc: %.4f, val_acc: %.4f, test_acc: %.4f, ood_acc: %.4f' % (
-                np.mean(truth['train']), np.mean(truth['val']), 
+                np.mean(truth['train']), np.mean(truth['dev']), 
                 np.mean(truth['test']), np.mean(truth['ood'])
             ))
         else:
             print('train_acc: %.4f, val_acc: %.4f, test1_acc: %.4f, test2_acc: %.4f, test3_acc: %.4f, ood_acc: %.4f' % (
-                np.mean(truth['train']), np.mean(truth['val']), 
+                np.mean(truth['train']), np.mean(truth['dev']), 
                 np.mean(truth['test1']), np.mean(truth['test2']), 
                 np.mean(truth['test3']), np.mean(truth['ood'])
             ))
 
         # val as in-distribution, ood as out-of-distribution
-        oracle = np.array([1]*len(truth['val']) + [0]*len(truth['ood']))
+        oracle = np.array([1]*len(truth['dev']) + [0]*len(truth['ood']))
         # oracle = np.array([1]*len(truth['test1']) + [0]*len(truth['ood']))
-        # print("in_data {} ood_data {}".format(len(truth['val']), len(truth['ood'])))
+        # print("in_data {} ood_data {}".format(len(truth['dev']), len(truth['ood'])))
 
         for metric in uncertainty_res:
             metric_res = torch.load(os.path.join(src_dir, metric))
@@ -275,7 +275,7 @@ class Uncertainty_Eval():
             self.cal_mUncertainty(metric_name, metric_res, ood_res)
 
             if metric_name not in ['Mutation', 'PVScore']:
-                pred = np.concatenate((metric_res['val'], metric_res['ood']))
+                pred = np.concatenate((metric_res['dev'], metric_res['ood']))
                 # pred = np.concatenate((metric_res['test1'], metric_res['ood']))
                 AUC = self.common_get_auc(oracle, pred) # AUC
                 AUPR = self.common_get_aupr(oracle, pred) # AUPR
@@ -286,7 +286,7 @@ class Uncertainty_Eval():
                 preds = [
                     np.concatenate((val_res, ood_res))
                     # for val_res, ood_res in zip(metric_res['test1'], metric_res['ood'])
-                    for val_res, ood_res in zip(metric_res['val'], metric_res['ood'])
+                    for val_res, ood_res in zip(metric_res['dev'], metric_res['ood'])
                 ]
                 for i, pred in enumerate(preds):
                     AUC = self.common_get_auc(oracle, pred) # AUC
