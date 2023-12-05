@@ -1,7 +1,8 @@
 import torch
 from BasicalClass import BasicModule
 from torch.nn import functional as F
-from BasicalClass import common_predict, common_ten2numpy
+from scipy.stats import entropy
+from BasicalClass import common_predict, common_ten2numpy, common_get_maxpos
 import numpy as np
 from Metric import BasicUncertainty
 from tqdm import tqdm
@@ -67,7 +68,6 @@ class ModelActivateDropout(BasicUncertainty):
 
         else:
             raise TypeError()
-
         return torch.cat(pred_pos, dim=0), torch.cat(pred_list, dim=0), torch.cat(y_list, dim=0)
 
     @staticmethod
@@ -79,16 +79,31 @@ class ModelActivateDropout(BasicUncertainty):
         _, repeat_num = np.shape(prediction) # N, iter_time
         tmp = np.tile(orig_pred.reshape([-1, 1]), (1, repeat_num)) # N X iter_time
         return np.sum(tmp == prediction, axis=1, dtype=np.float) / repeat_num
+    
+    def _pv(self, logits: torch.Tensor): # iter_time X N X k
+        prob_scores = F.softmax(logits, dim=-1).numpy() # iter_time X N X k
+        pv_scores = np.var(prob_scores, axis=0).mean(axis=1) # N
+        return pv_scores
+    
+    def _bald(self, logits: torch.Tensor): # iter_time X N X k
+        prob_scores = F.softmax(logits, dim=-1).numpy() # iter_time X N X k
+        prob_mean = prob_scores.mean(axis=0) # \bar{p_k}: N X k
+        mean_prob_uncertainties = entropy(prob_mean, axis=-1) # -sum p_k log p_k: N
+        mean_sample_entropy = - entropy(prob_scores, axis=-1).mean(axis=0) # mean_t sum_k (p_k log p_k): N 
+        return mean_sample_entropy + mean_prob_uncertainties # N
 
     def _uncertainty_calculate(self, data_loader):
         self.model.eval()
-        _, orig_pred, _ = self._predict_result(data_loader, self.model) # N
-        mc_result = []
-        print('calculating uncertainty ...')
+        smp_result, score_result = [], []
+        print('Stochastic variational inference ...')
         self.model.train()
         for i in tqdm(range(self.iter_time)):
-            _, res, _ = self._predict_result(data_loader, self.model) # N
-            mc_result.append(common_ten2numpy(res).reshape([-1, 1])) # N X 1
-        mc_result = np.concatenate(mc_result, axis=1) # N X iter_time
-        score = self.label_chgrate(orig_pred, mc_result)
-        return score
+            score, _, _ = self._predict_result(data_loader, self.model) # N X k, N
+            smp_result.append(common_get_maxpos(score).reshape([-1, 1])) # N X 1
+            score_result.append(score.detach().cpu()) # N X k
+
+        smp_score = np.concatenate(smp_result, axis=1).mean(axis=1) # SMP: N
+        score_result = torch.stack(score_result, dim=0) # iter_time X N X k
+        pv_score = - self._pv(score_result) # PV: N
+        bald_score = - self._bald(score_result) # BALD: N
+        return [smp_score, pv_score, bald_score]

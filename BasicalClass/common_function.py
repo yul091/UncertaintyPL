@@ -190,15 +190,15 @@ def common_load_corroptions():
             yield x, y, file_name.split('.')[0]
 
 
-def common_get_maxpos(pos : torch.Tensor) -> np.ndarray:
-    test_pred_pos, _ = torch.max(F.softmax(pos, dim=1), dim=1)
-    return common_ten2numpy(test_pred_pos)
+def common_get_maxpos(pos : torch.Tensor) -> np.ndarray: # shape: (N, k)
+    test_pred_pos, _ = torch.max(F.softmax(pos, dim=1), dim=1) # shape: (N, )
+    return common_ten2numpy(test_pred_pos) # shape: (N, )
 
-def common_get_entropy(pos : torch.Tensor) -> np.ndarray:
+def common_get_entropy(pos : torch.Tensor) -> np.ndarray: # shape: (N, k)
     k = pos.size(-1)
     pred_prob = F.softmax(pos, dim=-1) # (N, k)
-    etp = entropy(pred_prob, axis=-1)/np.log(k) # np.ndarray
-    return 1 - etp
+    etp = entropy(pred_prob, axis=-1) # equation = - \sum p * log(p)
+    return etp
 
 def common_ten2numpy(a:torch.Tensor) -> np.ndarray:
     return a.detach().cpu().numpy()

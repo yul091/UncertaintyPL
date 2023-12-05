@@ -26,12 +26,12 @@ if __name__ == '__main__':
         CodeCompletion_Module,
     ]
     MetricList = [
-        Vanilla,
-        ModelWithTemperature,
-        PVScore,
+        # Vanilla,
+        # ModelWithTemperature,
+        # PVScore,
         ModelActivateDropout,
-        Entropy,
-        Mutation,
+        # Entropy,
+        # Mutation,
         # Mahalanobis,
         # SWAG,
     ]

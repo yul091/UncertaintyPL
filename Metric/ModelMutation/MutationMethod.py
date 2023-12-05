@@ -27,15 +27,15 @@ class Mutation(BasicUncertainty):
         return np.sum(tmp == prediction, axis=1, dtype=np.float) / repeat_num
 
     def _uncertainty_calculate(self, data_loader):
-            score_list = []
-            _, orig_pred, _ = common_predict(
-                data_loader, self.model, self.device,
-                module_id=self.module_id
-            )
-            orig_pred = common_ten2numpy(orig_pred)
-            for op in self.op_list:
-                print(op.__class__.__name__)
-                mutation_matrix = op.run(data_loader, iter_time=self.iter_time, module_id=self.module_id)
-                score = self.label_chgrate(orig_pred, mutation_matrix)
-                score_list.append(score)
-            return score_list
+        score_list = []
+        _, orig_pred, _ = common_predict(
+            data_loader, self.model, self.device,
+            module_id=self.module_id
+        )
+        orig_pred = common_ten2numpy(orig_pred)
+        for op in self.op_list:
+            print(op.__class__.__name__)
+            mutation_matrix = op.run(data_loader, iter_time=self.iter_time, module_id=self.module_id)
+            score = self.label_chgrate(orig_pred, mutation_matrix)
+            score_list.append(score)
+        return score_list
