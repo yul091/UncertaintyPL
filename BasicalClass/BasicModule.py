@@ -189,7 +189,7 @@ class BasicModule:
             self.test_truth = self.test_pred_y.eq(self.test_y)
             truth = {
                 'train': common_ten2numpy(self.train_truth), # torch to numpy cpu
-                'val': common_ten2numpy(self.val_truth),
+                'dev': common_ten2numpy(self.val_truth),
                 'test': common_ten2numpy(self.test_truth)
             }
         else:
@@ -198,7 +198,7 @@ class BasicModule:
             self.test3_truth = self.test_pred_y3.eq(self.test_y3)
             truth = {
                 'train': common_ten2numpy(self.train_truth), # torch to numpy cpu
-                'val': common_ten2numpy(self.val_truth),
+                'dev': common_ten2numpy(self.val_truth),
                 'test1': common_ten2numpy(self.test1_truth),
                 'test2': common_ten2numpy(self.test2_truth),
                 'test3': common_ten2numpy(self.test3_truth)
