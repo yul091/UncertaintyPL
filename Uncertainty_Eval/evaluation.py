@@ -150,7 +150,7 @@ class Uncertainty_Eval():
 
     def cal_metric(self, metric_name, truth, metric_res, eval_res, metric='AUC'):
         if metric_name not in ['Mutation', 'PVScore']:
-            metric_val = self.common_cal(truth['val'], metric_res['dev'], metric)
+            metric_val = self.common_cal(truth['dev'], metric_res['dev'], metric)
             if not self.shift:
                 metric_test = self.common_cal(truth['test'], metric_res['test'], metric)
                 print('%s: val: %.4f, test: %.4f' % (metric, metric_val, metric_test))
@@ -168,7 +168,7 @@ class Uncertainty_Eval():
                 }
         else: # we pick the best eval result for PVScore and Mutation
             metric_vals = [
-                self.common_cal(truth['val'], res, metric) for res in metric_res['dev']
+                self.common_cal(truth['dev'], res, metric) for res in metric_res['dev']
             ]
             if not self.shift:
                 metric_tests = [
@@ -215,11 +215,11 @@ class Uncertainty_Eval():
         if not self.shift:
             if not self.ood:
                 print('train_acc: %.4f, val_acc: %.4f, test_acc: %.4f' % (
-                    np.mean(truth['train']), np.mean(truth['val']), np.mean(truth['test'])
+                    np.mean(truth['train']), np.mean(truth['dev']), np.mean(truth['test'])
                 ))
             else:
                 print('train_acc: %.4f, val_acc: %.4f, test_acc: %.4f, ood_acc: %.4f' % (
-                    np.mean(truth['train']), np.mean(truth['val']), 
+                    np.mean(truth['train']), np.mean(truth['dev']), 
                     np.mean(truth['test']), np.mean(truth['ood'])
                 ))
         for metric in uncertainty_res:

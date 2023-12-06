@@ -4,7 +4,7 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
-from scipy.stats import entropy
+from scipy.stats import entropy, spearmanr
 from sklearn.metrics import roc_curve, auc, average_precision_score
 
 
@@ -116,7 +116,7 @@ def common_predict(data_loader, model, device, train_sub=False, module_id=0):
             else:
                 raise TypeError()
 
-    return torch.cat(pred_pos, dim=0), torch.cat(pred_list, dim = 0), torch.cat(y_list, dim = 0)
+    return torch.cat(pred_pos, dim=0), torch.cat(pred_list, dim=0), torch.cat(y_list, dim=0)
 
     
 def common_get_auc(y_test, y_score, name=None):
@@ -202,3 +202,4 @@ def common_get_entropy(pos : torch.Tensor) -> np.ndarray: # shape: (N, k)
 
 def common_ten2numpy(a:torch.Tensor) -> np.ndarray:
     return a.detach().cpu().numpy()
+

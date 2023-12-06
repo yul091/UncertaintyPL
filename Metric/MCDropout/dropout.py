@@ -100,10 +100,18 @@ class ModelActivateDropout(BasicUncertainty):
         for i in tqdm(range(self.iter_time)):
             score, _, _ = self._predict_result(data_loader, self.model) # N X k, N
             smp_result.append(common_get_maxpos(score).reshape([-1, 1])) # N X 1
-            score_result.append(score.detach().cpu()) # N X k
-
+            # score_result.append(score.detach().cpu()) # N X k
+        print("Getting sampled maximum softmax response ...")
         smp_score = np.concatenate(smp_result, axis=1).mean(axis=1) # SMP: N
-        score_result = torch.stack(score_result, dim=0) # iter_time X N X k
-        pv_score = - self._pv(score_result) # PV: N
-        bald_score = - self._bald(score_result) # BALD: N
-        return [smp_score, pv_score, bald_score]
+        print("SMP: ", smp_score.shape)
+        return smp_score
+        # print("Getting stacked score ...")
+        # score_result = torch.stack(score_result, dim=0) # iter_time X N X k
+        # print("Score: ", score_result.shape)
+        # print("Calculating probability variance ...")
+        # pv_score = - self._pv(score_result) # PV: N
+        # print("PV: ", pv_score.shape)
+        # print("Calculating BALD ...")
+        # bald_score = - self._bald(score_result) # BALD: N
+        # print("BALD: ", bald_score.shape)
+        # return [smp_score, pv_score, bald_score]
