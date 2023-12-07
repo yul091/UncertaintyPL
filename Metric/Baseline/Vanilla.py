@@ -11,7 +11,6 @@ class Vanilla(BasicUncertainty):
         super(Vanilla, self).__init__(instance, device)
         
     def forward(self, *input, **kwargs):
-        # here since the model is code_summary model, the input has to be changed
         return self.model(*input, **kwargs)
 
     def _uncertainty_calculate(self, data_loader):
