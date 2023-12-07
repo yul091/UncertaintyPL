@@ -9,6 +9,10 @@ from Metric import BasicUncertainty
 class Vanilla(BasicUncertainty):
     def __init__(self, instance: BasicModule, device):
         super(Vanilla, self).__init__(instance, device)
+        
+    def forward(self, *input, **kwargs):
+        # here since the model is code_summary model, the input has to be changed
+        return self.model(*input, **kwargs)
 
     def _uncertainty_calculate(self, data_loader):
         logits, preds, labels = common_predict(data_loader, self.model, self.device, module_id=self.module_id)
