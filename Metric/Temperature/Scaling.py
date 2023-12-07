@@ -5,9 +5,6 @@ from torch.nn import functional as F
 from BasicalClass import (
     common_predict, 
     common_get_maxpos, 
-    common_cal_accuracy, 
-    common_ten2numpy,
-    spearmanr,
 )
 from BasicalClass import BasicModule
 from Metric import BasicUncertainty
@@ -53,44 +50,6 @@ class ModelWithTemperature(BasicUncertainty):
         valid_loader (DataLoader): validation set loader
         """
         # First: collect all the logits and labels for the validation set
-        # logits_list = []
-        # labels_list = []
-        # with torch.no_grad():
-        #     if self.module_id == 0: # code summary
-        #         for i, ((sts, paths, eds), y, length) in enumerate(valid_loader):
-        #             torch.cuda.empty_cache()
-        #             sts = sts.to(self.device)
-        #             paths = paths.to(self.device)
-        #             eds = eds.to(self.device)
-        #             y = torch.tensor(y, dtype=torch.long)
-        #             logits = self.model(starts=sts, paths=paths, ends=eds, length=length)
-                    
-        #             # detach
-        #             sts = sts.detach().cpu()
-        #             paths = paths.detach().cpu()
-        #             eds = eds.detach().cpu()
-
-        #             if isinstance(logits, tuple):
-        #                 logits = (py.detach().cpu() for py in logits)
-        #             else:
-        #                 logits = logits.detach().cpu()
-
-        #             logits_list.append(logits)
-        #             labels_list.append(y)
-
-        #     elif self.module_id == 1: # code completion
-        #         for i, (input, y, _) in enumerate(valid_loader):
-        #             torch.cuda.empty_cache()
-        #             input = input.to(self.device)
-        #             logits = self.model(input) # shape: N X class_num
-        #             logits_list.append(logits.detach().cpu())
-        #             labels_list.append(y.long())
-                    
-        #     else:
-        #         raise TypeError()
-
-        #     logits = torch.cat(logits_list) # shape: N X class_num
-        #     labels = torch.cat(labels_list) # shape: N
         logits, _, labels = common_predict(valid_loader, self.model, self.device, module_id=self.module_id)
 
         # Calculate NLL and ECE before temperature scaling
@@ -117,18 +76,5 @@ class ModelWithTemperature(BasicUncertainty):
     def _uncertainty_calculate(self, data_loader):
         logits, preds, labels = common_predict(data_loader, self, self.device, module_id=self.module_id)
         uncertainty = common_get_maxpos(logits) # winning score as uncertainty
-        nll = self.nll_criterion(self.temperature_scale(logits), labels).item()
-        ece = self.ece_criterion(self.temperature_scale(logits), labels).item()
-        acc = common_cal_accuracy(preds, labels)
-        rank_correlation, _ = spearmanr(uncertainty, preds.eq(labels).float())
-        print('Acc: %.4f, NLL: %.4f, ECE: %.4f,  Spearman rank correlation: %.4f' % (acc, nll, ece, rank_correlation))
-        return {
-            'UE_scores': uncertainty,
-            'preds': common_ten2numpy(preds),
-            'labels': common_ten2numpy(labels),
-            'nll': nll,
-            'ece': ece,
-            'acc': acc,
-            'rank_correlation': rank_correlation
-        }
+        return self.eval_uncertainty(logits, preds, labels, uncertainty)
 

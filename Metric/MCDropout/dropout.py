@@ -24,51 +24,32 @@ class ModelActivateDropout(BasicUncertainty):
         self.model.eval()
         res = common_ten2numpy(res.float() / self.iter_time)
         return res
-
-    def _predict_result(self, data_loader, model):
-        # print('predicting result ...')
-        pred_pos, pred_list, y_list = [], [], []
-        model.to(self.device)
-
-        if self.module_id == 0: # code summary
-            for i, ((sts, paths, eds), y, length) in enumerate(data_loader):
-                torch.cuda.empty_cache()
-                sts = sts.to(self.device)
-                paths = paths.to(self.device)
-                eds = eds.to(self.device)
-                y = torch.tensor(y, dtype=torch.long)
-                output = model(starts=sts, paths=paths, ends=eds, length=length)
-                _, pred_y = torch.max(output, dim=1) # shape: N
-                # detach
-                sts = sts.detach().cpu()
-                paths = paths.detach().cpu()
-                eds = eds.detach().cpu()
-                pred_y = pred_y.detach().cpu()
-                output = output.detach().cpu()
-
-                pred_list.append(pred_y)
-                pred_pos.append(output)
-                y_list.append(y)
-
-        elif self.module_id == 1: # code completion
-            for i, (input, y, _) in enumerate(data_loader):
-                torch.cuda.empty_cache()
-                input = input.to(self.device)
-                output = model(input)
-                _, pred_y = torch.max(output, dim=1)
-                # detach
-                input = input.detach().cpu()
-                pred_y = pred_y.detach().cpu()
-                output = output.detach().cpu()
+    
+    
+    def forward(self, *input, **kwargs):
+        ws_sum = None
+        sample_logits = []
+        
+        # Stochastic variational inference
+        for _ in range(self.iter_time): 
+            logit = self.model(*input, **kwargs) # B X k
+            # UE estimation
+            ws = common_get_maxpos(logit) # B
+            if ws_sum is None:
+                ws_sum = ws
+            else:
+                ws_sum += ws
+            sample_logits.append(logit.detach().cpu()) # B X k
             
-                # measure accuracy and record loss
-                pred_list.append(pred_y)
-                pred_pos.append(output)
-                y_list.append(y.long())
+        sample_logits = torch.stack(sample_logits, dim=0) # iter_time X B X k
+        logit_mean = sample_logits.mean(dim=0) # B X k
+        pred_mean = torch.argmax(logit_mean, dim=1) # B
+        ws_mean = ws_sum / self.iter_time # B
+        pv_score = - self._pv(sample_logits) # PV: B
+        bald_score = - self._bald(sample_logits) # BALD: B
+        
+        return ws_mean, pv_score, bald_score, logit_mean, pred_mean
 
-        else:
-            raise TypeError()
-        return torch.cat(pred_pos, dim=0), torch.cat(pred_list, dim=0), torch.cat(y_list, dim=0)
 
     @staticmethod
     def label_chgrate(orig_pred, prediction):
@@ -93,25 +74,44 @@ class ModelActivateDropout(BasicUncertainty):
         return mean_sample_entropy + mean_prob_uncertainties # N
 
     def _uncertainty_calculate(self, data_loader):
-        self.model.eval()
-        smp_result, score_result = [], []
+        
         print('Stochastic variational inference ...')
+        ws_list, pv_list, bald_list, logit_list, pred_list, y_list = [], [], [], [], [], []
+        self.model.to(self.device)
         self.model.train()
-        for i in tqdm(range(self.iter_time)):
-            score, _, _ = self._predict_result(data_loader, self.model) # N X k, N
-            smp_result.append(common_get_maxpos(score).reshape([-1, 1])) # N X 1
-            # score_result.append(score.detach().cpu()) # N X k
-        print("Getting sampled maximum softmax response ...")
-        smp_score = np.concatenate(smp_result, axis=1).mean(axis=1) # SMP: N
-        print("SMP: ", smp_score.shape)
-        return smp_score
-        # print("Getting stacked score ...")
-        # score_result = torch.stack(score_result, dim=0) # iter_time X N X k
-        # print("Score: ", score_result.shape)
-        # print("Calculating probability variance ...")
-        # pv_score = - self._pv(score_result) # PV: N
-        # print("PV: ", pv_score.shape)
-        # print("Calculating BALD ...")
-        # bald_score = - self._bald(score_result) # BALD: N
-        # print("BALD: ", bald_score.shape)
-        # return [smp_score, pv_score, bald_score]
+
+        if self.module_id == 0: # code summary
+            for i, ((sts, paths, eds), y, length) in enumerate(data_loader):
+                sts = sts.to(self.device)
+                paths = paths.to(self.device)
+                eds = eds.to(self.device)
+                y = torch.tensor(y, dtype=torch.long)
+                ws_mean, pv_score, bald_score, logit, pred_y = self(sts, paths, eds, length)
+                logit_list.append(logit)
+                pred_list.append(pred_y)
+                y_list.append(y)
+                ws_list.append(ws_mean)
+                pv_list.append(pv_score)
+                bald_list.append(bald_score)
+
+        elif self.module_id == 1: # code completion
+            for i, (input, y, _) in tqdm(enumerate(data_loader), total=len(data_loader)):
+                input = input.to(self.device)
+                ws_mean, pv_score, bald_score, logit, pred_y = self(input)
+                logit_list.append(logit)
+                pred_list.append(pred_y)
+                y_list.append(y)
+                ws_list.append(ws_mean)
+                pv_list.append(pv_score)
+                bald_list.append(bald_score)
+                
+        else:
+            raise TypeError()
+        
+        ws_scores = np.concatenate(ws_list, axis=0) # N
+        pv_scores = np.concatenate(pv_list, axis=0) # N
+        bald_scores = np.concatenate(bald_list, axis=0) # N
+        logits = torch.cat(logit_list, dim=0) # N X k
+        preds = torch.cat(pred_list, dim=0) # N
+        labels = torch.cat(y_list, dim=0) # N
+        return self.eval_uncertainty(logits, preds, labels, [ws_scores, pv_scores, bald_scores])

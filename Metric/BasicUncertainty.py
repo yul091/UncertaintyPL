@@ -3,8 +3,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
+from typing import List, Union
 from abc import ABCMeta, abstractmethod
-from BasicalClass import common_ten2numpy, common_predict
+from BasicalClass import (
+    common_ten2numpy, 
+    common_predict,
+    common_cal_accuracy, 
+    common_ten2numpy,
+    spearmanr,
+)
 from BasicalClass import BasicModule
 
 
@@ -161,6 +169,41 @@ class BasicUncertainty(nn.Module):
                 'test3': test_score3
             }
         return result
+    
+    
+    def eval_uncertainty(
+        self, 
+        logits: Tensor, 
+        preds: Tensor, 
+        labels: Tensor, 
+        uncertainty: Union[np.ndarray, List[np.ndarray]],
+    ):
+        """
+        Calculate Accuracy, NLL, ECE, and Spearman's rank correlation
+        """
+        nll = self.nll_criterion(logits, labels).item()
+        ece = self.ece_criterion(logits, labels).item()
+        acc = common_cal_accuracy(preds, labels).item()
+        truths = preds.eq(labels).float()
+        if isinstance(uncertainty, list):
+            corrs = []
+            for i, ue in enumerate(uncertainty):
+                rank_correlation, _ = spearmanr(ue, truths)
+                corrs.append(rank_correlation)
+            print('Acc: %.4f, NLL: %.4f, ECE: %.4f, Rank correlations: %s' % (acc, nll, ece, corrs))
+        else:
+            rank_correlation, _ = spearmanr(uncertainty, truths)
+            print('Acc: %.4f, NLL: %.4f, ECE: %.4f, Rank correlation: %.4f' % (acc, nll, ece, rank_correlation))
+        return {
+            'UE_scores': uncertainty,
+            'preds': common_ten2numpy(preds),
+            'labels': common_ten2numpy(labels),
+            'nll': nll,
+            'ece': ece,
+            'acc': acc,
+            'rank_correlation': rank_correlation
+        }
+    
 
     def save_uncertaity_file(self, score_dict):
         data_name = self.instance.__class__.__name__
