@@ -28,8 +28,8 @@ if __name__ == '__main__':
     MetricList = [
         # Vanilla,
         # ModelWithTemperature,
-        # PVScore,
-        ModelActivateDropout,
+        PVScore,
+        # ModelActivateDropout,
         # Entropy,
         # Mutation,
     ]

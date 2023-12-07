@@ -39,29 +39,23 @@ class PVScore(BasicUncertainty):
         #     self.train_sub_model(lr=1e-2, epoch=10)
 
     def cal_svc(self, pred_vec, original_pred):
-        pred_vec = self.softmax(pred_vec) # shape: [batch_size, class_num]
-        # print('pred_vec size: ', pred_vec.size())
+        pred_vec = self.softmax(pred_vec) # shape: B X k
         pred_order = torch.argsort(pred_vec, dim=1)
         sub_pred = pred_order[:, -1]
         sec_pos = pred_order[:, -2]
-        # second_vec = pred_vec[torch.arange(len(pred_vec)), sec_pos].to(self.device)
         second_vec = pred_vec[torch.arange(len(pred_vec)), sec_pos]
-        cor_index = torch.where(sub_pred == original_pred)
-        err_index = torch.where(sub_pred != original_pred)
+        cor_index = torch.where(sub_pred == original_pred) # shape: (N, )
+        err_index = torch.where(sub_pred != original_pred) # shape: (N, )
 
-        # SVscore = torch.zeros([len(pred_vec)]).to(self.device)
         SVscore = torch.zeros([len(pred_vec)])
-        # lsh = torch.zeros([len(pred_vec)]).to(self.device)
         lsh = torch.zeros([len(pred_vec)])
-
         lsh[cor_index] = second_vec[cor_index]
-        # tmp = pred_vec[torch.arange(len(pred_vec)), original_pred][cor_index].to(self.device)
         tmp = pred_vec[torch.arange(len(pred_vec)), original_pred][cor_index]
         SVscore[cor_index] = tmp / (tmp + lsh[cor_index])
 
         lsh[err_index] = pred_vec[torch.arange(len(pred_order)), sub_pred][err_index]
         tmp = pred_vec[torch.arange(len(pred_vec)), original_pred][err_index]
-        SVscore[err_index] = 1 - lsh[err_index] / (lsh[err_index] + tmp)
+        SVscore[err_index] = 1 - lsh[err_index] / (lsh[err_index] + tmp) # shape: (N, )
 
         return SVscore
 
@@ -106,7 +100,6 @@ class PVScore(BasicUncertainty):
                     pred = pred.detach().cpu()
 
             linear.eval()
-            
             _, pred_y, _ = common_predict(
                 data_loader, linear, device=self.device, train_sub=True,
                 module_id=self.module_id
@@ -114,7 +107,6 @@ class PVScore(BasicUncertainty):
             acc = common_cal_accuracy(pred_y, self.train_y)
             print('feature number for sub-model is', len(sub_res[0]), ', finish training the sub-model', sub_num[i],
                   'for', self.instance.__class__.__name__, ', accuracy is', acc.item())
-
             save_path = self.get_submodel_path(sub_num[i])
             torch.save(linear, save_path)
             print('save sub model in', save_path)
@@ -132,7 +124,7 @@ class PVScore(BasicUncertainty):
         return save_path
 
     def get_submodel_prediction(self, data_loader):
-        res = []
+        logits = []
         sub_res_list, sub_num, y = self.instance.get_hiddenstate(data_loader, self.device)
         for i in range(len(sub_num)):
             save_path = self.get_submodel_path(sub_num[i])
@@ -144,36 +136,40 @@ class PVScore(BasicUncertainty):
                 data_loader, linear_model, self.device, train_sub=True, 
                 module_id=self.module_id
             )
-            res.append(pred_pos)
-            print('test accuracy for', self.__class__.__name__, 'submodel ', sub_num[i], 'is', torch.sum(y.eq(pred_y), dtype=torch.float).item() / len(y))
-        return res, sub_num
+            logits.append(pred_pos)
+            print('test accuracy for', self.__class__.__name__, 
+                  'submodel ', sub_num[i], 
+                  'is', torch.sum(y.eq(pred_y), dtype=torch.float).item() / len(y))
+        return logits, y, sub_num
 
     def get_svscore(self, data_loader, pred_y):
-        sub_pred_pos_list, sub_num = self.get_submodel_prediction(data_loader)
+        logit_list, labels, sub_num = self.get_submodel_prediction(data_loader)
         svscore_list = []
-        for sub_pred_pos in sub_pred_pos_list:
+        for sub_pred_pos in logit_list:
             svscore = self.cal_svc(sub_pred_pos, pred_y)
-            # print('svscore: ', svscore)
             svscore_list.append(svscore.view([-1, 1]))
         svscore_list = torch.cat(svscore_list, dim=1)
         svscore_list = torch.transpose(svscore_list, 0, 1)
-        return svscore_list, sub_num
+        # Predictions
+        logit_mean = torch.stack(logit_list, dim=0).mean(dim=0) # N X k
+        pred_mean = torch.argmax(logit_mean, dim=1) # N
+        
+        return svscore_list, sub_num, logit_mean, pred_mean, labels 
 
     def _uncertainty_calculate(self, data_loader):
         print('Dissector uncertainty evaluation ...')
         weight_list = [0, 1, 2]
-        result = []
+        uncertainty = []
         _, pred_y, _ = common_predict(
             data_loader, self.model, self.device, 
             module_id=self.module_id
         )
         # pred_y = pred_y.to(self.device)
-        svscore_list, sub_num = self.get_svscore(data_loader, pred_y)
+        svscore_list, sub_num, logits, preds, labels = self.get_svscore(data_loader, pred_y)
         for weight in weight_list:
             pv_score = self.get_pvscore(svscore_list, sub_num, weight).detach().cpu()
-            result.append(common_ten2numpy(pv_score))
-        return result
+            uncertainty.append(common_ten2numpy(pv_score))
+        
+        return self.eval_uncertainty(logits, preds, labels, uncertainty)
 
 
-# if __name__ == '__main__':
-#     test()
