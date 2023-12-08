@@ -27,15 +27,21 @@ class Mutation(BasicUncertainty):
         return np.sum(tmp == prediction, axis=1, dtype=np.float) / repeat_num
 
     def _uncertainty_calculate(self, data_loader):
-        score_list = []
-        _, orig_pred, _ = common_predict(
+        uncertainty, logit_list, pred_list = [], [], []
+        _, orig_pred, labels = common_predict(
             data_loader, self.model, self.device,
             module_id=self.module_id
         )
         orig_pred = common_ten2numpy(orig_pred)
         for op in self.op_list:
             print(op.__class__.__name__)
-            mutation_matrix = op.run(data_loader, iter_time=self.iter_time, module_id=self.module_id)
-            score = self.label_chgrate(orig_pred, mutation_matrix)
-            score_list.append(score)
-        return score_list
+            mutation_matrix, logits = op.run(data_loader, iter_time=self.iter_time, module_id=self.module_id)
+            preds = torch.argmax(logits, dim=1) # N
+            logit_list.append(logits)
+            pred_list.append(preds)
+            lcr = self.label_chgrate(orig_pred, mutation_matrix)
+            uncertainty.append(lcr)
+            
+        return self.eval_uncertainty(logit_list, pred_list, labels, uncertainty)
+        
+        

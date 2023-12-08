@@ -24,14 +24,19 @@ class BasicMutation:
 
     def run(self, data_loader, iter_time, module_id):
         res = []
+        logits = None
         while len(res) <= iter_time:
-            print('this is the %d model' % (len(res)))
+            # print('this is the %d model' % (len(res)))
             mutate_model, is_fail = self.get_mutate_model()
             if not is_fail:
-                _, pred_y, _ = common_predict(data_loader, mutate_model, self.device, 
+                logit, pred_y, _ = common_predict(data_loader, mutate_model, self.device, 
                                               module_id=module_id)
                 res.append(common_ten2numpy(pred_y).reshape([-1, 1]))
-        return np.concatenate(res, axis=1)
+                if logits is None:
+                    logits = logit
+                else:
+                    logits += logit
+        return np.concatenate(res, axis=1), logits / iter_time
 
 
 class GaussianFuzzing(BasicMutation):

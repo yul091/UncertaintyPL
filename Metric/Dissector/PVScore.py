@@ -81,7 +81,7 @@ class PVScore(BasicUncertainty):
         sub_res_list, sub_num, label = self.instance.get_hiddenstate(self.train_loader, self.device)
         for i, sub_res in enumerate(sub_res_list):
             linear = nn.Linear(len(sub_res[1]), self.class_num).to(self.device)
-            my_loss = nn.CrossEntropyLoss()
+            criterion = nn.CrossEntropyLoss()
             optimizer = optim.SGD(linear.parameters(), lr=lr)
             data_loader = build_loader(sub_res, label, self.train_batch_size)
             linear.train()
@@ -89,9 +89,9 @@ class PVScore(BasicUncertainty):
                 for x, y in data_loader:
                     x = x.to(self.device)
                     y = y.to(self.device).view([-1])
-                    linear.zero_grad()
+                    optimizer.zero_grad()
                     pred = linear(x)
-                    loss = my_loss(pred, y)
+                    loss = criterion(pred, y)
                     loss.backward()
                     optimizer.step()
                     # detach

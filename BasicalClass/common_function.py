@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 from scipy.stats import entropy, spearmanr
-from sklearn.metrics import roc_curve, auc, average_precision_score
+from sklearn.metrics import roc_curve, auc, average_precision_score, brier_score_loss, precision_recall_curve
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -118,14 +118,6 @@ def common_predict(data_loader, model, device, train_sub=False, module_id=0):
 
     return torch.cat(pred_pos, dim=0), torch.cat(pred_list, dim=0), torch.cat(y_list, dim=0)
 
-    
-def common_get_auc(y_test, y_score, name=None):
-    fpr, tpr, threshold = roc_curve(y_test, y_score)  ###计算真正率和假正率
-    roc_auc = auc(fpr, tpr)  ###计算auc的值
-    if name is not None:
-        print(name, 'auc is ', roc_auc)
-    return roc_auc
-
 
 def common_plotROC(y_test, y_score, file_name= None):
     fpr, tpr, threshold = roc_curve(y_test, y_score)  ###计算真正率和假正率
@@ -147,11 +139,52 @@ def common_plotROC(y_test, y_score, file_name= None):
     print(file_name, 'auc is ', roc_auc)
     return roc_auc
 
-def common_get_aupr(y_test, y_score, name=None):
-    aupr = average_precision_score(y_test, y_score)
-    if name is not None:
-        print(name, 'aupr is ', aupr)
-    return aupr
+
+# def common_get_auc(y_test, y_score, name=None):
+#     fpr, tpr, threshold = roc_curve(y_test, y_score)  ###计算真正率和假正率
+#     roc_auc = auc(fpr, tpr)  ###计算auc的值
+#     if name is not None:
+#         print(name, 'auc is ', roc_auc)
+#     return roc_auc
+
+# def common_get_aupr(y_test, y_score, name=None):
+#     aupr = average_precision_score(y_test, y_score)
+#     if name is not None:
+#         print(name, 'aupr is ', aupr)
+#     return aupr
+
+
+def common_get_auc(y_test, y_score):
+    # calculate true positive & false positive
+    try:
+        fpr, tpr, threshold = roc_curve(y_test, y_score)  
+        roc_auc = auc(fpr, tpr)  # calculate AUC
+        return roc_auc 
+    except:
+        return 0.0
+
+def common_get_aupr(y_test, y_score):
+    try:
+        precision, recall, thresholds = precision_recall_curve(y_test, y_score)
+        area = auc(recall, precision)
+        return area
+    except:
+        return 0.0
+
+def common_get_nll(y_test, y_score):
+    pred_logits = torch.cat((
+        torch.tensor(y_score).unsqueeze(1), 
+        torch.tensor(1-y_score).unsqueeze(1)
+    ), dim=-1)
+    nll = torch.nn.NLLLoss()
+    return nll(pred_logits, torch.tensor(y_test).long()).item()
+
+def common_get_brier(y_test, y_score):
+    try:
+        brier = brier_score_loss(y_test, y_score)
+        return brier
+    except:
+        return 1.0
 
 
 def common_get_accuracy(ground_truth, oracle_pred, threshhold = 0.1):

@@ -173,30 +173,48 @@ class BasicUncertainty(nn.Module):
     
     def eval_uncertainty(
         self, 
-        logits: Tensor, 
-        preds: Tensor, 
+        logits: Union[Tensor, List[Tensor]], 
+        preds: Union[Tensor, List[Tensor]], 
         labels: Tensor, 
         uncertainty: Union[np.ndarray, List[np.ndarray]],
     ):
         """
         Calculate Accuracy, NLL, ECE, and Spearman's rank correlation
         """
-        nll = self.nll_criterion(logits, labels).item()
-        ece = self.ece_criterion(logits, labels).item()
-        acc = common_cal_accuracy(preds, labels).item()
-        truths = preds.eq(labels).float()
+        if isinstance(logits, list):
+            nll, ece, acc, truths = [], [], [], []
+            for logit, pred in zip(logits, preds):
+                nll.append(self.nll_criterion(logit, labels).item())
+                ece.append(self.ece_criterion(logit, labels).item())
+                acc.append(common_cal_accuracy(pred, labels).item())
+                truths.append(common_ten2numpy(pred.eq(labels)))
+            preds = [common_ten2numpy(pred) for pred in preds]
+        else:
+            nll = [self.nll_criterion(logits, labels).item()]
+            ece = [self.ece_criterion(logits, labels).item()]
+            acc = [common_cal_accuracy(preds, labels).item()]
+            truths = [common_ten2numpy(preds.eq(labels))]
+            preds = [common_ten2numpy(preds)]
+        
         if isinstance(uncertainty, list):
             corrs = []
             for i, ue in enumerate(uncertainty):
-                rank_correlation, _ = spearmanr(ue, truths)
+                if isinstance(logits, list) and len(uncertainty) == len(logits):
+                    rank_correlation, _ = spearmanr(ue, truths[i])
+                else:
+                    rank_correlation, _ = spearmanr(ue, truths[0])
                 corrs.append(rank_correlation)
-            print('Acc: %.4f, NLL: %.4f, ECE: %.4f, Rank correlations: %s' % (acc, nll, ece, corrs))
+            print('Acc: %s, NLL: %s, ECE: %s, Rank correlations: %s' % (acc, nll, ece, corrs))
         else:
-            rank_correlation, _ = spearmanr(uncertainty, truths)
-            print('Acc: %.4f, NLL: %.4f, ECE: %.4f, Rank correlation: %.4f' % (acc, nll, ece, rank_correlation))
+            rank_correlation, _ = spearmanr(uncertainty, truths[0])
+            uncertainty = [uncertainty]
+            rank_correlation = [rank_correlation]
+            print('Acc: %s, NLL: %s, ECE: %s, Rank correlation: %s' % (acc, nll, ece, rank_correlation))
+        
         return {
             'UE_scores': uncertainty,
-            'preds': common_ten2numpy(preds),
+            'preds': preds,
+            'truths': truths,
             'labels': common_ten2numpy(labels),
             'nll': nll,
             'ece': ece,
