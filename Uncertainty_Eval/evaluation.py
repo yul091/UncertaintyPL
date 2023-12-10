@@ -31,40 +31,6 @@ class Uncertainty_Eval():
         
 
     def cal_mUncertainty(self, metric_name, metric_res, eval_res):
-        # if metric_name not in ['Mutation', 'PVScore']:
-        #     mU_val = np.mean(metric_res['dev'])
-        #     if self.ood:
-        #         mU_ood = np.mean(metric_res['ood'])
-        #     if not self.shift:
-        #         mU_test = np.mean(metric_res['test'])
-        #         if not self.ood:
-        #             print('%s: \nmUncertainty: val: %.4f, test: %.4f' % (metric_name, mU_val, mU_test))
-        #             eval_res[metric_name]['mUncertain'] = {'dev': mU_val, 'test': mU_test}
-        #         else:
-        #             print('%s: \nmUncertainty: val: %.4f, test: %.4f, ood: %.4f' % (metric_name, mU_val, mU_test, mU_ood))
-        #             eval_res[metric_name]['mUncertain'] = {'dev': mU_val, 'test': mU_test, 'ood': mU_ood}
-        #     else:
-        #         mU_test1 = np.mean(metric_res['test1'])
-        #         mU_test2 = np.mean(metric_res['test2'])
-        #         mU_test3 = np.mean(metric_res['test3'])
-        #         if not self.ood:
-        #             print('%s: \nmUncertainty: val: %.4f, test1: %.4f, test2: %.4f, test3: %.4f' % (
-        #                 metric_name, mU_val, mU_test1, mU_test2, mU_test3
-        #             ))
-        #             eval_res[metric_name]['mUncertain'] = {
-        #                 'dev': mU_val, 'test1': mU_test1,
-        #                 'test2': mU_test2, 'test3': mU_test3,
-        #             }
-        #         else:
-        #             print('%s: \nmUncertainty: val: %.4f, test1: %.4f, test2: %.4f, test3: %.4f, ood: %.4f' % (
-        #                 metric_name, mU_val, mU_test1, mU_test2, mU_test3, mU_ood
-        #             ))
-        #             eval_res[metric_name]['mUncertain'] = {
-        #                 'dev': mU_val, 'test1': mU_test1,
-        #                 'test2': mU_test2, 'test3': mU_test3, 'ood': mU_ood
-        #             }
-        # else:
-        # average uncertainty
         mU_vals = [np.mean(res) for res in metric_res['dev']['UE_scores']]
         if self.ood:
             mU_oods = [np.mean(res) for res in metric_res['ood']['UE_scores']]
@@ -118,31 +84,13 @@ class Uncertainty_Eval():
                 ]
 
 
-    def cal_metric(self, metric_name, truth, metric_res, eval_res, metric='AUC'):
-        # if metric_name not in ['Mutation', 'PVScore']:
-        #     metric_val = self.common_cal(truth['dev'], metric_res['dev'], metric)
-        #     if not self.shift:
-        #         metric_test = self.common_cal(truth['test'], metric_res['test'], metric)
-        #         print('%s: val: %.4f, test: %.4f' % (metric, metric_val, metric_test))
-        #         eval_res[metric_name][metric] = {'dev': metric_val, 'test': metric_test}
-        #     else:
-        #         metric_test1 = self.common_cal(truth['test1'], metric_res['test1'], metric)
-        #         metric_test2 = self.common_cal(truth['test2'], metric_res['test2'], metric)
-        #         metric_test3 = self.common_cal(truth['test3'], metric_res['test3'], metric)
-        #         print('%s: val: %.4f, test1: %.4f, test2: %.4f, test3: %.4f' % (
-        #             metric, metric_val, metric_test1, metric_test2, metric_test3
-        #         ))
-        #         eval_res[metric_name][metric] = {
-        #             'dev': metric_val, 'test1': metric_test1, 
-        #             'test2': metric_test2, 'test3': metric_test3,
-        #         }
-        # else: # we pick the best eval result for PVScore and Mutation
+    def cal_metric(self, metric_name, metric_res, eval_res, metric='AUC'):
         metric_vals = [
-            self.common_cal(truth['dev'], scores, metric) for scores in metric_res['dev']['UE_scores']
+            self.common_cal(metric_res['dev']['truths'][0], scores, metric) for scores in metric_res['dev']['UE_scores']
         ]
         if not self.shift:
             metric_tests = [
-                self.common_cal(truth['test'], res, metric) for res in metric_res['test']
+                self.common_cal(metric_res['test']['truths'][0], scores, metric) for scores in metric_res['test']['UE_scores']
             ]
             count = 0
             for metric_val, metric_test in zip(metric_vals, metric_tests):
@@ -156,13 +104,16 @@ class Uncertainty_Eval():
             ]
         else:
             mts1 = [
-                self.common_cal(truth['test1'], res, metric) for res in metric_res['test1']
+                self.common_cal(metric_res['test1']['truths'][0], res, metric) 
+                for res in metric_res['test1']['UE_scores']
             ]
             mts2 = [
-                self.common_cal(truth['test2'], res, metric) for res in metric_res['test2']
+                self.common_cal(metric_res['test2']['truths'][0], res, metric) 
+                for res in metric_res['test2']['UE_scores']
             ]
             mts3 = [
-                self.common_cal(truth['test3'], res, metric) for res in metric_res['test3']
+                self.common_cal(metric_res['test3']['truths'][0], res, metric) 
+                for res in metric_res['test3']['UE_scores']
             ]
             count = 0
             for metric_val, mt1, mt2, mt3 in zip(metric_vals, mts1, mts2, mts3):
@@ -200,11 +151,11 @@ class Uncertainty_Eval():
             # average uncertainty
             self.cal_mUncertainty(metric_name, metric_res, eval_res)
             # AUC
-            self.cal_metric(metric_name, truth, metric_res, eval_res, 'AUC')
+            self.cal_metric(metric_name, metric_res, eval_res, 'AUC')
             # AUPR
-            self.cal_metric(metric_name, truth, metric_res, eval_res, 'AUPR')
+            self.cal_metric(metric_name, metric_res, eval_res, 'AUPR')
             # Brier score
-            self.cal_metric(metric_name, truth, metric_res, eval_res, 'Brier')
+            self.cal_metric(metric_name, metric_res, eval_res, 'Brier')
 
         # save evaluation res
         if not os.path.exists(os.path.join(self.save_dir, self.task)):
@@ -247,9 +198,9 @@ class Uncertainty_Eval():
             if metric_name not in ['Mutation', 'PVScore']:
                 pred = np.concatenate((metric_res['dev'], metric_res['ood']))
                 # pred = np.concatenate((metric_res['test1'], metric_res['ood']))
-                AUC = self.common_get_auc(oracle, pred) # AUC
-                AUPR = self.common_get_aupr(oracle, pred) # AUPR
-                Brier = self.common_get_brier(oracle, pred) # Brier score
+                AUC = common_get_auc(oracle, pred) # AUC
+                AUPR = common_get_aupr(oracle, pred) # AUPR
+                Brier = common_get_brier(oracle, pred) # Brier score
                 print('AUC: %.4f, AUPR: %.4f, Brier: %.4f' % (AUC, AUPR, Brier))
                 ood_res[metric_name] = {'AUC': AUC, 'AUPR': AUPR, 'Brier': Brier}
             else:
@@ -259,16 +210,16 @@ class Uncertainty_Eval():
                     for val_res, ood_res in zip(metric_res['dev'], metric_res['ood'])
                 ]
                 for i, pred in enumerate(preds):
-                    AUC = self.common_get_auc(oracle, pred) # AUC
-                    AUPR = self.common_get_aupr(oracle, pred) # AUPR
-                    Brier = self.common_get_brier(oracle, pred) # Brier score
+                    AUC = common_get_auc(oracle, pred) # AUC
+                    AUPR = common_get_aupr(oracle, pred) # AUPR
+                    Brier = common_get_brier(oracle, pred) # Brier score
                     print('(method %d) AUC: %.4f, AUPR: %.4f, Brier: %.4f' % (i+1, AUC, AUPR, Brier))
 
                 ood_res[metric_name] = [
                     {
-                        'AUC': self.common_get_auc(oracle, pred), 
-                        'AUPR': self.common_get_aupr(oracle, pred), 
-                        'Brier': self.common_get_brier(oracle, pred),
+                        'AUC': common_get_auc(oracle, pred), 
+                        'AUPR': common_get_aupr(oracle, pred), 
+                        'Brier': common_get_brier(oracle, pred),
                     } for pred in preds
                 ]
       

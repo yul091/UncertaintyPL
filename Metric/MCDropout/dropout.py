@@ -29,6 +29,7 @@ class ModelActivateDropout(BasicUncertainty):
     def forward(self, *input, **kwargs):
         ws_sum = None
         sample_logits = []
+        self.model.train()
         
         # Stochastic variational inference
         for _ in range(self.iter_time): 
@@ -78,7 +79,6 @@ class ModelActivateDropout(BasicUncertainty):
         print('Stochastic variational inference ...')
         ws_list, pv_list, bald_list, logit_list, pred_list, y_list = [], [], [], [], [], []
         self.model.to(self.device)
-        self.model.train()
 
         if self.module_id == 0: # code summary
             for i, ((sts, paths, eds), y, length) in enumerate(data_loader):

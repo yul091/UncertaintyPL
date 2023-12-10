@@ -11,7 +11,7 @@ fi
 for SHIFT in different_author different_time different_project case_study; do
   RES_DIR=Uncertainty_logging/$TASK/$SHIFT
   EXPERIMENT_LOG=$RES_DIR/$MODEL'_miscls_prediction.txt'
-  python Uncertainty_Eval/evaluation.py \
+  python -B -m Uncertainty_Eval.evaluation \
       --shift_type $SHIFT \
       --task $TASK \
       --model $MODEL | tee $EXPERIMENT_LOG

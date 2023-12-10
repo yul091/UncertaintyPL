@@ -12,6 +12,22 @@ from BasicalClass import common_get_maxpos, common_predict, common_cal_accuracy
 from Metric import BasicUncertainty
 
 
+# A two-layer MLP class for learning the projection function
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        return x
+
+
+
 class HidenDataset(Dataset):
     def __init__(self, x, y):
         self.x_data = x
@@ -34,7 +50,7 @@ def build_loader(x, y, batch_size):
 class PVScore(BasicUncertainty):
     def __init__(self, instance: BasicModule, device):
         super(PVScore, self).__init__(instance, device)
-        self.train_sub_model(lr=1e-2, epoch=10)
+        self.train_sub_model(lr=1e-3, epoch=10)
         # if len(os.listdir(os.path.join(instance.save_dir, instance.__class__.__name__))) == 0:
         #     self.train_sub_model(lr=1e-2, epoch=10)
 
@@ -77,21 +93,23 @@ class PVScore(BasicUncertainty):
         return weight_svc
 
     def train_sub_model(self, lr, epoch):
-        print("train sub models ...")
+        print("Train sub models ...")
         sub_res_list, sub_num, label = self.instance.get_hiddenstate(self.train_loader, self.device)
         for i, sub_res in enumerate(sub_res_list):
             linear = nn.Linear(len(sub_res[1]), self.class_num).to(self.device)
+            # linear = MLP(len(sub_res[1]), 1024, self.class_num).to(self.device)
             criterion = nn.CrossEntropyLoss()
             optimizer = optim.SGD(linear.parameters(), lr=lr)
             data_loader = build_loader(sub_res, label, self.train_batch_size)
             linear.train()
             for _ in range(epoch):
                 for x, y in data_loader:
-                    x = x.to(self.device)
-                    y = y.to(self.device).view([-1])
+                    x = x.to(self.device) # B X d
+                    y = y.to(self.device).view([-1]) # B
                     optimizer.zero_grad()
                     pred = linear(x)
                     loss = criterion(pred, y)
+                    print('Batch loss: ', loss.item())
                     loss.backward()
                     optimizer.step()
                     # detach
