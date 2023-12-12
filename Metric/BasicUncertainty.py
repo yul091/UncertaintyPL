@@ -204,12 +204,11 @@ class BasicUncertainty(nn.Module):
                 else:
                     rank_correlation, _ = spearmanr(ue, truths[0])
                 corrs.append(rank_correlation)
-            print('Acc: %s, NLL: %s, ECE: %s, Rank correlations: %s' % (acc, nll, ece, corrs))
         else:
             rank_correlation, _ = spearmanr(uncertainty, truths[0])
             uncertainty = [uncertainty]
-            rank_correlation = [rank_correlation]
-            print('Acc: %s, NLL: %s, ECE: %s, Rank correlation: %s' % (acc, nll, ece, rank_correlation))
+            corrs = [rank_correlation]
+        print('Acc: %s, NLL: %s, ECE: %s, Rank correlation: %s' % (acc, nll, ece, corrs))
         
         return {
             'UE_scores': uncertainty,
@@ -219,7 +218,7 @@ class BasicUncertainty(nn.Module):
             'nll': nll,
             'ece': ece,
             'acc': acc,
-            'rank_correlation': rank_correlation
+            'rank_correlation': corrs,
         }
     
 
