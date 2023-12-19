@@ -1,15 +1,15 @@
-notebooks/*
-# scripts/*
-Figure/*
-dataset/*
-dataset_new/*
-data/*
-checkpoints/*
-results/*
-results_new/*
-Uncertainty_Results/*
-Uncertainty_Results_new/*
-Uncertainty_Results_Old/*
-Uncertainty_logging/*
-Uncertainty_logging_old/*
+notebooks
+# scripts
+Figure
+dataset
+dataset_new
+data
+checkpoints
+results
+results_new
+Uncertainty_Results
+Uncertainty_Results_new
+Uncertainty_Results_Old
+Uncertainty_logging
+Uncertainty_logging_old
 Python150kExtractor
