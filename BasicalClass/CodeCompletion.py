@@ -20,7 +20,7 @@ class CodeCompletion_Module(BasicModule):
         train_batch_size, 
         test_batch_size, 
         max_size, 
-        load_poor=False
+        load_poor=False,
     ):
         super(CodeCompletion_Module, self).__init__(
             device, res_dir, save_dir, data_dir, module_id,

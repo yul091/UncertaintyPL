@@ -106,6 +106,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=str, default='data/main/different_project', help='Input dataset directory')
     parser.add_argument("--dest_dir", type=str, default='dataset/code_completion/different_project', help='Output dataset directory')
+    parser.add_argument("--language", default='java', type=str, help='Language of the dataset')
     args = parser.parse_args()
     ###############################################################################
     random.seed(42)
@@ -113,6 +114,7 @@ if __name__ == '__main__':
     # Handle java files
     data_dir = args.data_dir
     dest_dir = args.dest_dir
+    language = args.language
     data_type = ['train', 'dev', 'test1', 'test2', 'test3'] if 'case_study' not in data_dir else ['train', 'dev', 'test']
     # data_dir = 'data/case_study'
     # data_type = ['train', 'val', 'test']
