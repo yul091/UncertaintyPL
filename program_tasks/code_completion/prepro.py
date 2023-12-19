@@ -115,7 +115,8 @@ if __name__ == '__main__':
     data_dir = args.data_dir
     dest_dir = args.dest_dir
     language = args.language
-    data_type = ['train', 'dev', 'test1', 'test2', 'test3'] if 'case_study' not in data_dir else ['train', 'dev', 'test']
+    data_type = ['train', 'dev', 'test1', 'test2', 'test3'] \
+        if 'different' in data_dir else ['train', 'dev', 'test']
     # data_dir = 'data/case_study'
     # data_type = ['train', 'val', 'test']
     java_dict = {
@@ -126,13 +127,18 @@ if __name__ == '__main__':
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
 
-    for name, src in java_dict.items():
-        parse_java(src, dest_dir, name, token_dict)
-        # Generate .txt files
+    for name, src in java_dict.items(): # Generate .txt files
+        if language == 'java':
+            parse_java(src, dest_dir, name, token_dict)
+        elif language == 'python':
+            # parse_python(src, dest_dir, name, token_dict)
+            # copy original file to dest dir
+            os.system(f"cp {src}.txt {dest_dir}/")
 
     for name in java_dict:
         origin_file = os.path.join(dest_dir, name)
         dest_file = origin_file.rstrip('.txt') + '.tsv'
+        print(f"origin_file: {origin_file}, dest file: {dest_file}")
         create_tsv_file(origin_file, dest_file)
         # Generate .tsv files
 
