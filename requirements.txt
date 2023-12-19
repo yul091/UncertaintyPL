@@ -2,7 +2,7 @@ tensorflow
 torch==1.13.1
 javalang
 gdown
-transformers
+transformers==4.35.2
 dill
 nltk
 scikit-learn
