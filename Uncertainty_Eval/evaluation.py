@@ -171,10 +171,9 @@ class Uncertainty_Eval():
         uncertainty_res = [f for f in os.listdir(src_dir) if f.endswith('.res') and f != 'truth.res']
         
         if not self.shift:
-            print('train_acc: %.4f, val_acc: %.4f, test_acc: %.4f, ood_acc: %.4f' % (
-                np.mean(truth['train']), np.mean(truth['dev']), 
-                np.mean(truth['test']), np.mean(truth['ood'])
-            ))
+            print('train_acc: %.4f, val_acc: %.4f, ood_acc: %.4f' % (
+                np.mean(truth['train']), np.mean(truth['dev']), np.mean(truth['test']))
+            )
         else:
             print('train_acc: %.4f, val_acc: %.4f, test1_acc: %.4f, test2_acc: %.4f, test3_acc: %.4f, ood_acc: %.4f' % (
                 np.mean(truth['train']), np.mean(truth['dev']), 
@@ -183,9 +182,8 @@ class Uncertainty_Eval():
             ))
 
         # val as in-distribution, ood as out-of-distribution
-        oracle = np.array([1]*len(truth['dev']) + [0]*len(truth['ood']))
-        # oracle = np.array([1]*len(truth['test1']) + [0]*len(truth['ood']))
-        # print("in_data {} ood_data {}".format(len(truth['dev']), len(truth['ood'])))
+        oracle = np.array([1]*len(truth['dev']) + [0]*len(truth['test']))
+        print("in_data {} ood_data {}".format(len(truth['dev']), len(truth['test'])))
 
         for metric in uncertainty_res:
             metric_res = torch.load(os.path.join(src_dir, metric))
@@ -195,33 +193,24 @@ class Uncertainty_Eval():
             # average uncertainty
             self.cal_mUncertainty(metric_name, metric_res, ood_res)
 
-            if metric_name not in ['Mutation', 'PVScore']:
-                pred = np.concatenate((metric_res['dev'], metric_res['ood']))
-                # pred = np.concatenate((metric_res['test1'], metric_res['ood']))
+            preds = [
+                np.concatenate((val_res, ood_res))
+                # for val_res, ood_res in zip(metric_res['test'], metric_res['ood'])
+                for val_res, ood_res in zip(metric_res['dev']['UE_scores'], metric_res['test']['UE_scores'])
+            ]
+            for i, pred in enumerate(preds):
                 AUC = common_get_auc(oracle, pred) # AUC
                 AUPR = common_get_aupr(oracle, pred) # AUPR
                 Brier = common_get_brier(oracle, pred) # Brier score
-                print('AUC: %.4f, AUPR: %.4f, Brier: %.4f' % (AUC, AUPR, Brier))
-                ood_res[metric_name] = {'AUC': AUC, 'AUPR': AUPR, 'Brier': Brier}
-            else:
-                preds = [
-                    np.concatenate((val_res, ood_res))
-                    # for val_res, ood_res in zip(metric_res['test1'], metric_res['ood'])
-                    for val_res, ood_res in zip(metric_res['dev'], metric_res['ood'])
-                ]
-                for i, pred in enumerate(preds):
-                    AUC = common_get_auc(oracle, pred) # AUC
-                    AUPR = common_get_aupr(oracle, pred) # AUPR
-                    Brier = common_get_brier(oracle, pred) # Brier score
-                    print('(method %d) AUC: %.4f, AUPR: %.4f, Brier: %.4f' % (i+1, AUC, AUPR, Brier))
+                print('(method %d) AUC: %.4f, AUPR: %.4f, Brier: %.4f' % (i+1, AUC, AUPR, Brier))
 
-                ood_res[metric_name] = [
-                    {
-                        'AUC': common_get_auc(oracle, pred), 
-                        'AUPR': common_get_aupr(oracle, pred), 
-                        'Brier': common_get_brier(oracle, pred),
-                    } for pred in preds
-                ]
+            ood_res[metric_name] = [
+                {
+                    'AUC': common_get_auc(oracle, pred), 
+                    'AUPR': common_get_aupr(oracle, pred), 
+                    'Brier': common_get_brier(oracle, pred),
+                } for pred in preds
+            ]
       
         # save evaluation res
         if not os.path.exists(os.path.join(self.save_dir, self.task)):
@@ -246,6 +235,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', '-m', type=str, default='code2vec', help='Model name.')
     parser.add_argument('--task', '-t', type=str, default='code_summary', 
                         choices=['code_summary', 'code_completion'], help='Task name.')
+    parser.add_argument('--ood', '-o', action='store_true', help='Whether to evaluate ood.')
     args = parser.parse_args()
 
     SHIFT = args.shift_type # different_project, different_author, different_time
@@ -260,4 +250,7 @@ if __name__ == "__main__":
         ood=False, # True if ood is evaluated in Eval_res
     )
     # error/success prediction
-    eval_m.evaluation()
+    if not args.ood:
+        eval_m.evaluation()
+    else:
+        eval_m.ood_detect()
