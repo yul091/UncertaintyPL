@@ -9,11 +9,9 @@ import torch
 from BasicalClass.common_function import *
 
 
-class Filter:
+class InputValidator:
     def __init__(self, metric_dir: str, save_dir: str, shift: str):
         self.shift = shift
-        self.module_id = module_id
-        self.max_size = max_size
         self.save_dir = save_dir
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -31,17 +29,18 @@ class Filter:
         UE_dict: Dict[str, Any],
         UE_name: str, 
         split: str, 
-        original_size: int,
         res: Dict[str, Any],
         threshold: float = None,
         coverage: float = None,
         using_coverage: bool = False,
     ):
-        all_scores = UE_dict[split] # List of scores
+        all_scores = UE_dict[split]['UE_scores'] # List of scores
         for i, scores in enumerate(all_scores):
+            original_size = len(scores)
             if using_coverage:
                 remain_size = int(coverage * original_size)
                 idx = np.argsort(scores)[::-1][:remain_size]
+                # print(f"original size: {scores.shape}, remain size: {remain_size}, idx: {idx}")
                 threshold = scores[idx[-1]]
             else:
                 idx = np.where(scores >= threshold)[0]
@@ -59,24 +58,28 @@ class Filter:
         
             res[UE_name][split]['coverage'].append(coverage)
             res[UE_name][split]['threshold'].append(threshold)
-            res[UE_name][split]['F-1'].append(acc)
-            res[UE_name][split]['AUC'].append(auc)
-            res[UE_name][split]['AUPR'].append(aupr)
-            res[UE_name][split]['Brier'].append(brier)
+            res[UE_name][split][f'accuracy-{i}'].append(acc)
+            res[UE_name][split][f'AUC-{i}'].append(auc)
+            res[UE_name][split][f'AUPR-{i}'].append(aupr)
+            res[UE_name][split][f'Brier-{i}'].append(brier)
         
-            print('[{} set | {} sub-method {} | threshold {}]: coverage {:.2f}, F-1 {:.2f}, AUC {:.2f}, AUPR {:.2f}, Brier {:.2f}'.format(
+            print('[{} set | {} sub-method {} | threshold {}]: coverage {:.2f}, acc {:.2f}, AUC {:.2f}, AUPR {:.2f}, Brier {:.2f}'.format(
                 split, UE_name, i, threshold, coverage, acc, auc, aupr, brier,
             ))
 
 
     def filtering(self, res, split='dev', threshold=None, coverage=None, use_coverage=False):
-        original_size = len(self.vanilla[split])
-        for method in ['vanilla', 'temperature', 'mutation', 'dropout', 'dissector']:
+        for ue_name, ue_dict in [
+            ('vanilla', self.vanilla), 
+            ('temperature', self.temp), 
+            ('mutation', self.mutation), 
+            ('dropout', self.dropout), 
+            ('dissector', self.pv),
+        ]:
             self.get_filtered_stats(
-                UE_dict=self.vanilla,
-                UE_name=method,
+                UE_dict=ue_dict,
+                UE_name=ue_name,
                 split=split,
-                original_size=original_size,
                 res=res,
                 threshold=threshold,
                 coverage=coverage,
@@ -115,11 +118,25 @@ class Filter:
             res['mutation'][split] = defaultdict(list)
             res['dropout'][split] = defaultdict(list)
             res['dissector'][split] = defaultdict(list)
-            for threshold in tqdm(value_range):
-                if strategy == 'threshold':
-                    self.filtering(res, threshold, testset)
-                else:
-                    self.coverage_filtering(res, threshold, testset)
+            
+            if strategy == 'threshold':
+                for threshold in tqdm(value_range):
+                    self.filtering(
+                        res=res, 
+                        split=split, 
+                        threshold=threshold, 
+                        coverage=coverage,
+                        use_coverage=False,
+                    )
+            else:
+                for coverage in tqdm(value_range):
+                    self.filtering(
+                        res=res, 
+                        split=split, 
+                        threshold=threshold, 
+                        coverage=coverage,
+                        use_coverage=True,
+                    )
             
         # Save file 
         if strategy == 'threshold':
@@ -148,8 +165,6 @@ if __name__ == "__main__":
                         choices=['code_summary', 'code_completion'],
                         help='Type of program task')
     parser.add_argument('--model', type=str, default='codebert')
-    parser.add_argument('--data_dir', type=str, default='dataset')
-    parser.add_argument('--model_dir', type=str, default='results')
     parser.add_argument('--uncertainty_dir', type=str, default='Uncertainty_Results',
                         help='Directory where the uncertainty results are stored')
     parser.add_argument('--out_dir', type=str, default='Uncertainty_Eval/filter',
@@ -160,12 +175,9 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     task = args.task
-    module_id = 0 if task == 'code_summary' else 1
     shift_type = args.shift_type
     model_type = args.model
     strategy = args.strategy
-    dataset_dir = args.data_dir
-    model_dir = args.model_dir
     uncertainty_dir = args.uncertainty_dir
     out_dir = args.out_dir
     module = 'CodeSummary_Module' if task == 'code_summary' else 'CodeCompletion_Module'
@@ -173,29 +185,17 @@ if __name__ == "__main__":
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     
-    res_dir = f'{model_dir}/{task}/{shift_type}/{model_type}'
     metric_dir = f'{uncertainty_dir}/{shift_type}/{model_type}/{module}'
     save_dir = f'{out_dir}/{shift_type}/{model_type}/{module}'
-    data_dir = f'{dataset_dir}/{task}/{shift_type}'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
     shift = True if shift_type != 'case_study' else False
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    max_size = None if task == 'code_summary' else 200
-    batch_size = 256 if task == 'code_summary' else 64
-
-    filter = Filter(
-        res_dir=res_dir, 
-        data_dir=data_dir, 
+    filter = InputValidator(
         metric_dir=metric_dir,
         save_dir=save_dir, 
-        device=device, 
-        module_id=module_id, 
         shift=shift,
-        max_size=max_size, 
-        batch_size=batch_size,
     )
 
     filter.run(strategy=strategy)

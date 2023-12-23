@@ -9,12 +9,10 @@ METRICDIR=Uncertainty_Results
 OUTDIR=Uncertainty_Eval/input_validation
 
 for SHIFT in different_author different_time different_project case_study; do
-    CUDA_VISIBLE_DEVICES=7 python filter.py \
+    CUDA_VISIBLE_DEVICES=7 python input_validation.py \
         --shift_type $SHIFT \
         --task $TASK \
         --model $MODEL \
-        --data_dir $DATADIR \
-        --model_dir $MODELDIR \
         --uncertainty_dir $METRICDIR \
         --out_dir $OUTDIR \
         --strategy coverage
