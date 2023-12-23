@@ -26,10 +26,11 @@ EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 echo $EXPERIMENT_NAME
 
 
-CUDA_VISIBLE_DEVICES=7 python -B -m program_tasks.code_completion.main \
+CUDA_VISIBLE_DEVICES=3 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data $TEST_DATA \
   --model_type $MODEL_TYPE \
+  --ensemble_models 5 \
   --embedding_path $EMBEDDING_PATH \
   --embedding_type $EMBEDDING_TYPE \
   --embedding_dim $EMBEDDING_DIM \

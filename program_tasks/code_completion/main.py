@@ -237,6 +237,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    import random
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--epochs', default=10, type=int, metavar='N', help='number of total epochs to run')
     parser.add_argument('--batch_size', default=2048, type=int, metavar='N', help='mini-batch size')
@@ -255,6 +256,7 @@ if __name__ == '__main__':
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
     parser.add_argument('--weight_name', type=str, default='1', help='model name')
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
+    parser.add_argument('--ensemble_models', type=int, default=1, help='number of ensemble models')
     parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
     parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/dev.tsv', help='model name')
     parser.add_argument('--test_data', type=str, default=None, help='model name')
@@ -267,4 +269,16 @@ if __name__ == '__main__':
     parser.add_argument('--load_ckpt', default=False, action='store_true', help='use pretrained model')
     args = parser.parse_args()
 
-    main(args)
+    if args.ensemble_models > 1:
+        for i in range(args.ensemble_models):
+            # Optionally set a different seed for each training to ensure diversity
+            random.seed(i)
+            print(f'Training ensemble model {i} ...')
+            original_res_dir = args.res_dir
+            args.res_dir = os.path.join(original_res_dir, f'ensemble_model-{i}')
+            if not os.path.exists(args.res_dir):
+                os.makedirs(args.res_dir)
+            main(args)
+            args.res_dir = original_res_dir
+    else:
+        main(args)

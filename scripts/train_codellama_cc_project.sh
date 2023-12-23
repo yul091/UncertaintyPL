@@ -31,6 +31,7 @@ CUDA_VISIBLE_DEVICES=1 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
   --model_type $MODEL_TYPE \
+  --ensemble_models 5 \
   --embedding_path $EMBEDDING_PATH \
   --embedding_type $EMBEDDING_TYPE \
   --embedding_dim $EMBEDDING_DIM \
