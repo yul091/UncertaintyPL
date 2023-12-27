@@ -1,70 +1,52 @@
-import torch
-from torch.nn import functional as F
+import numpy as np
+from tqdm import tqdm
 from scipy.stats import entropy
+import torch
+import torch.nn.functional as F
+from typing import List
 from BasicalClass import (
-    BasicModule, 
-    common_predict, 
-    common_ten2numpy, 
+    BasicModule,
     common_get_maxpos,
 )
-import numpy as np
 from Metric import BasicUncertainty
-from tqdm import tqdm
 
-class ModelActivateDropout(BasicUncertainty):
-    def __init__(self, instance: BasicModule, device, iter_time):
-        super(ModelActivateDropout, self).__init__(instance, device)
-        self.iter_time = iter_time
 
-    def extract_metric(self, data_loader, orig_pred_y):
-        res = 0
-        self.model.train()
-        for _ in range(self.iter_time):
-            _, pred, _ = common_predict(
-                data_loader, self.model, self.device, 
-                module_id=self.module_id
-            )
-            res = res + pred.eq(orig_pred_y)
-        self.model.eval()
-        res = common_ten2numpy(res.float() / self.iter_time)
-        return res
+class Ensemble(BasicUncertainty):
     
-    
+    def __init__(self, instances: List[BasicModule], device):
+        super(Ensemble, self).__init__(instances[0], device)
+        self.instances = instances
+        self.num_models = len(instances)
+        self.model_list = []
+        for i in range(self.num_models):
+            self.model_list.append(self.instances[i].get_model())
+            
     def forward(self, *input, **kwargs):
         ws_sum = None
         sample_logits = []
-        self.model.train()
-        
-        # Stochastic variational inference
-        for _ in range(self.iter_time): 
-            logit = self.model(*input, **kwargs) # B X k
-            # UE estimation
-            ws = common_get_maxpos(logit) # B
-            if ws_sum is None:
-                ws_sum = ws
-            else:
-                ws_sum += ws
-            sample_logits.append(logit.detach().cpu()) # B X k
-            
+        print("\nDeep ensemble forward: ")
+        with torch.no_grad():
+            # Stochastic variational inference
+            for i in range(self.num_models): 
+                self.model_list[i].eval()
+                logit = self.model_list[i](*input, **kwargs) # B X k
+                print(f'model {i}, logit: {logit}')
+                # UE estimation
+                ws = common_get_maxpos(logit) # B
+                if ws_sum is None:
+                    ws_sum = ws
+                else:
+                    ws_sum += ws
+                sample_logits.append(logit.detach().cpu()) # B X k
+                    
         sample_logits = torch.stack(sample_logits, dim=0) # iter_time X B X k
         logit_mean = sample_logits.mean(dim=0) # B X k
         pred_mean = torch.argmax(logit_mean, dim=1) # B
-        ws_mean = ws_sum / self.iter_time # B
+        ws_mean = ws_sum / self.num_models # B
         pv_score = - self._pv(sample_logits) # PV: B
         bald_score = - self._bald(sample_logits) # BALD: B
         
         return ws_mean, pv_score, bald_score, logit_mean, pred_mean
-
-
-    @staticmethod
-    def label_chgrate(orig_pred, prediction):
-        """
-        orig_pred: N
-        prediction: N X iter_time
-        """
-        _, repeat_num = np.shape(prediction) # N, iter_time
-        tmp = np.tile(orig_pred.reshape([-1, 1]), (1, repeat_num)) # N X iter_time
-        return np.sum(tmp == prediction, axis=1, dtype=np.float) / repeat_num
     
     def _pv(self, logits: torch.Tensor): # iter_time X N X k
         prob_scores = F.softmax(logits, dim=-1).numpy() # iter_time X N X k
@@ -77,12 +59,13 @@ class ModelActivateDropout(BasicUncertainty):
         mean_prob_uncertainties = entropy(prob_mean, axis=-1) # -sum p_k log p_k: N
         mean_sample_entropy = - entropy(prob_scores, axis=-1).mean(axis=0) # mean_t sum_k (p_k log p_k): N 
         return mean_sample_entropy + mean_prob_uncertainties # N
-
+    
     def _uncertainty_calculate(self, data_loader):
         
-        print('Stochastic variational inference ...')
+        print('Deep ensemble inference ...')
         ws_list, pv_list, bald_list, logit_list, pred_list, y_list = [], [], [], [], [], []
-        self.model.to(self.device)
+        for i in range(self.num_models):
+            self.model_list[i].to(self.device)
 
         if self.module_id == 0: # code summary
             for i, ((sts, paths, eds), y, length) in enumerate(data_loader):

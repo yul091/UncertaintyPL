@@ -11,20 +11,12 @@ from program_tasks.code_completion.dataloader import Word2vecLoader
 class CodeCompletion_Module(BasicModule):
 
     def __init__(
-        self, 
-        device, 
-        res_dir, 
-        save_dir, 
-        data_dir, 
-        module_id, 
-        train_batch_size, 
-        test_batch_size, 
-        max_size, 
-        load_poor=False,
+        self, device, res_dir, save_dir, data_dir, module_id, 
+        train_batch_size, test_batch_size, max_size, load_poor=False,
     ):
         super(CodeCompletion_Module, self).__init__(
             device, res_dir, save_dir, data_dir, module_id,
-            train_batch_size, test_batch_size, max_size, load_poor
+            train_batch_size, test_batch_size, max_size, load_poor,
         )
 
         if self.test_path is not None: # only on test test

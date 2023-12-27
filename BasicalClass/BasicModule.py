@@ -1,7 +1,6 @@
 import os
 import torch
 from abc import ABCMeta, abstractmethod
-from torch.utils.data import DataLoader, Subset
 from BasicalClass.common_function import common_predict, common_ten2numpy
 
 
@@ -18,7 +17,7 @@ class BasicModule:
         train_batch_size, 
         test_batch_size, 
         max_size, 
-        load_poor=False
+        load_poor=False,
     ):
 
         if module_id == 0: # code summary

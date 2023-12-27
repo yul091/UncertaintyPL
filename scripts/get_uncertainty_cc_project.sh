@@ -9,9 +9,10 @@ RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 SAVE_DIR=Uncertainty_Results/$SHIFT_TYPE/$MODEL_TYPE
 TRAIN_BATCH_SIZE=128
 TEST_BATCH_SIZE=128
-MAX_SIZE=200
+MAX_SIZE=20
 LOG_DIR=Uncertainty_logging/code_completion/$SHIFT_TYPE
 EXPERIMENT_LOG=$LOG_DIR/$MODEL_TYPE'.txt'
+ENSEMBLE_DIRS="${RES_DIR}/ensemble_model-0 ${RES_DIR}/ensemble_model-1 ${RES_DIR}/ensemble_model-2"
 
 if [ ! -d $LOG_DIR ]; then
   mkdir -p $LOG_DIR
@@ -30,6 +31,7 @@ CUDA_VISIBLE_DEVICES=5 python test_uncertainty.py \
   --data_dir $DATA_DIR --save_dir $SAVE_DIR \
   --train_batch_size $TRAIN_BATCH_SIZE \
   --test_batch_size $TEST_BATCH_SIZE \
+  --ensemble_dirs $ENSEMBLE_DIRS \
   --max_size $MAX_SIZE | tee $EXPERIMENT_LOG
 ###################################################################################
 
