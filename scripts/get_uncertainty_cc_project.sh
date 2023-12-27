@@ -12,7 +12,15 @@ TEST_BATCH_SIZE=128
 MAX_SIZE=20
 LOG_DIR=Uncertainty_logging/code_completion/$SHIFT_TYPE
 EXPERIMENT_LOG=$LOG_DIR/$MODEL_TYPE'.txt'
-ENSEMBLE_DIRS="${RES_DIR}/ensemble_model-0 ${RES_DIR}/ensemble_model-1 ${RES_DIR}/ensemble_model-2"
+# ENSEMBLE_DIRS="${RES_DIR}/ensemble_model-0 ${RES_DIR}/ensemble_model-1 ${RES_DIR}/ensemble_model-2"
+# Loop over directories matching the pattern 'ensemble_model-*' under $RES_DIR
+for dir in "${RES_DIR}"/ensemble_model-*; do
+    # Check if it's indeed a directory
+    if [ -d "$dir" ]; then
+        # Append to the ENSEMBLE_DIRS string, separated by space
+        ENSEMBLE_DIRS="${ENSEMBLE_DIRS} ${dir}"
+    fi
+done
 
 if [ ! -d $LOG_DIR ]; then
   mkdir -p $LOG_DIR

@@ -11,7 +11,7 @@ else
 fi
 
 DATA_DIR=dataset/code_completion/$SHIFT_TYPE
-EPOCHS=100
+EPOCHS=5
 BATCH=32
 LR=2e-5
 TRAIN_DATA=$DATA_DIR/train.tsv
@@ -31,7 +31,7 @@ CUDA_VISIBLE_DEVICES=0 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data1 $TEST_DATA1 --test_data2 $TEST_DATA2 --test_data3 $TEST_DATA3 \
   --model_type $MODEL_TYPE \
-  --ensemble_models 5 \
+  --ensemble_models 4 \
   --embedding_path $EMBEDDING_PATH \
   --embedding_type $EMBEDDING_TYPE \
   --embedding_dim $EMBEDDING_DIM \
