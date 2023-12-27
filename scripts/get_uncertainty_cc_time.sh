@@ -25,7 +25,7 @@ else
   echo dir exist
 fi
 
-CUDA_VISIBLE_DEVICES=2 python test_uncertainty.py \
+CUDA_VISIBLE_DEVICES=4 python test_uncertainty.py \
   --module_id $MODULE_ID --res_dir $RES_DIR \
   --data_dir $DATA_DIR --save_dir $SAVE_DIR \
   --train_batch_size $TRAIN_BATCH_SIZE \

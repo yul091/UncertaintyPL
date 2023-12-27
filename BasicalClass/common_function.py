@@ -140,20 +140,6 @@ def common_plotROC(y_test, y_score, file_name= None):
     return roc_auc
 
 
-# def common_get_auc(y_test, y_score, name=None):
-#     fpr, tpr, threshold = roc_curve(y_test, y_score)  ###计算真正率和假正率
-#     roc_auc = auc(fpr, tpr)  ###计算auc的值
-#     if name is not None:
-#         print(name, 'auc is ', roc_auc)
-#     return roc_auc
-
-# def common_get_aupr(y_test, y_score, name=None):
-#     aupr = average_precision_score(y_test, y_score)
-#     if name is not None:
-#         print(name, 'aupr is ', aupr)
-#     return aupr
-
-
 def common_get_auc(y_test, y_score):
     # calculate true positive & false positive
     try:
@@ -230,9 +216,19 @@ def common_get_maxpos(pos : torch.Tensor) -> np.ndarray: # shape: (N, k)
 def common_get_entropy(pos : torch.Tensor) -> np.ndarray: # shape: (N, k)
     k = pos.size(-1)
     pred_prob = F.softmax(pos, dim=-1) # (N, k)
-    etp = entropy(pred_prob, axis=-1) # equation = - \sum p * log(p)
+    etp = entropy(pred_prob, axis=-1) # equation = - \sum p * log(p), shape: (N, )
     return etp
 
 def common_ten2numpy(a:torch.Tensor) -> np.ndarray:
     return a.detach().cpu().numpy()
 
+def common_get_confidence(pos: torch.Tensor, labels: torch.Tensor) -> np.ndarray:
+    """
+    :param pos p(c|x): shape: (N, k)
+    :param labels y: shape: (N, )
+    :return: shape p(y|x): (N, )
+    """
+    k = pos.size(-1)
+    pred_prob = F.softmax(pos, dim=-1) # (N, k)
+    conf = pred_prob[range(len(labels)), labels] # (N, )
+    return common_ten2numpy(conf)

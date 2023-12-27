@@ -11,6 +11,8 @@ from BasicalClass import (
     common_predict,
     common_cal_accuracy, 
     common_ten2numpy,
+    common_get_entropy,
+    common_get_confidence,
     spearmanr,
 )
 from BasicalClass import BasicModule
@@ -182,12 +184,14 @@ class BasicUncertainty(nn.Module):
         Calculate Accuracy, NLL, ECE, and Spearman's rank correlation
         """
         if isinstance(logits, list):
-            nll, ece, acc, truths = [], [], [], []
+            nll, ece, acc, truths, entropies, confidencies = [], [], [], [], [], []
             for logit, pred in zip(logits, preds):
                 nll.append(self.nll_criterion(logit, labels).item())
                 ece.append(self.ece_criterion(logit, labels).item())
                 acc.append(common_cal_accuracy(pred, labels).item())
                 truths.append(common_ten2numpy(pred.eq(labels)))
+                entropies.append(common_get_entropy(logit))
+                confidencies.append(common_get_confidence(logit, labels))
             preds = [common_ten2numpy(pred) for pred in preds]
         else:
             nll = [self.nll_criterion(logits, labels).item()]
@@ -195,6 +199,8 @@ class BasicUncertainty(nn.Module):
             acc = [common_cal_accuracy(preds, labels).item()]
             truths = [common_ten2numpy(preds.eq(labels))]
             preds = [common_ten2numpy(preds)]
+            entropies = [common_get_entropy(logits)]
+            confidencies = [common_get_confidence(logits, labels)]
         
         if isinstance(uncertainty, list):
             corrs = []
@@ -215,6 +221,8 @@ class BasicUncertainty(nn.Module):
             'preds': preds,
             'truths': truths,
             'labels': common_ten2numpy(labels),
+            'entropies': entropies,
+            'confidencies': confidencies,
             'nll': nll,
             'ece': ece,
             'acc': acc,

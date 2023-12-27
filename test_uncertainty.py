@@ -30,7 +30,6 @@ if __name__ == '__main__':
         ModelWithTemperature,
         PVScore,
         ModelActivateDropout,
-        Entropy,
         Mutation,
     ]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
