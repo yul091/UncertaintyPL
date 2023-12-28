@@ -12,6 +12,13 @@ TEST_BATCH_SIZE=128
 MAX_SIZE=200
 LOG_DIR=Uncertainty_logging/code_completion/$SHIFT_TYPE
 EXPERIMENT_LOG=$LOG_DIR/$MODEL_TYPE'.txt'
+for dir in "${RES_DIR}"/ensemble_model-*; do
+    # Check if it's indeed a directory
+    if [ -d "$dir" ]; then
+        # Append to the ENSEMBLE_DIRS string, separated by space
+        ENSEMBLE_DIRS="${ENSEMBLE_DIRS} ${dir}"
+    fi
+done
 
 if [ ! -d $LOG_DIR ]; then
   mkdir -p $LOG_DIR
@@ -30,6 +37,7 @@ CUDA_VISIBLE_DEVICES=6 python test_uncertainty.py \
   --data_dir $DATA_DIR --save_dir $SAVE_DIR \
   --train_batch_size $TRAIN_BATCH_SIZE \
   --test_batch_size $TEST_BATCH_SIZE \
+  --ensemble_dirs $ENSEMBLE_DIRS \
   --max_size $MAX_SIZE | tee $EXPERIMENT_LOG
 ###################################################################################
 
