@@ -24,13 +24,13 @@ class Ensemble(BasicUncertainty):
     def forward(self, *input, **kwargs):
         ws_sum = None
         sample_logits = []
-        print("\nDeep ensemble forward: ")
+        # print("\nDeep ensemble forward: ")
         with torch.no_grad():
             # Stochastic variational inference
             for i in range(self.num_models): 
                 self.model_list[i].eval()
                 logit = self.model_list[i](*input, **kwargs) # B X k
-                print(f'model {i}, logit: {logit}')
+                # print(f'model {i}, logit: {logit}')
                 # UE estimation
                 ws = common_get_maxpos(logit) # B
                 if ws_sum is None:

@@ -21,6 +21,7 @@ class InputValidator:
         self.pv = torch.load(os.path.join(metric_dir, 'PVScore.res'))
         self.dropout = torch.load(os.path.join(metric_dir, 'ModelActivateDropout.res'))
         self.mutation = torch.load(os.path.join(metric_dir, 'Mutation.res'))
+        self.ensemble = torch.load(os.path.join(metric_dir, 'Ensemble.res'))
         # self.truth = torch.load(os.path.join(metric_dir, 'truth.res'))
         
         
@@ -74,6 +75,7 @@ class InputValidator:
             ('temperature', self.temp), 
             ('mutation', self.mutation), 
             ('dropout', self.dropout), 
+            ('ensemble', self.ensemble),
             ('dissector', self.pv),
         ]:
             self.get_filtered_stats(
@@ -104,6 +106,7 @@ class InputValidator:
             'temperature': {}, 
             'mutation': {},
             'dropout': {},
+            'ensemble': {},
             'dissector': {},
         }
 
@@ -117,6 +120,7 @@ class InputValidator:
             res['temperature'][split] = defaultdict(list)
             res['mutation'][split] = defaultdict(list)
             res['dropout'][split] = defaultdict(list)
+            res['ensemble'][split] = defaultdict(list)
             res['dissector'][split] = defaultdict(list)
             
             if strategy == 'threshold':
