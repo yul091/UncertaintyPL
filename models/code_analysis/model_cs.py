@@ -514,7 +514,7 @@ class CodeLlama2Vec(LlamaPreTrainedModel):
             requires_grad=True,
         )
         self.out = nn.Linear(2*config_node.hidden_size, config_concat.num_labels)
-        self.drop = nn.Dropout(config_node.hidden_dropout_prob)
+        self.drop = nn.Dropout(dropout)
         print('Created {} with {:,} params:\n{}'.format(
             self.__class__.__name__, count_parameters(self), self
         ))

@@ -82,7 +82,7 @@ def train(train_loader, model, criterion, optimizer):
     losses = AverageMeter()
     top1 = AverageMeter()
     model.train()
-    for i, (input, target, _) in tqdm(enumerate(train_loader)):
+    for i, (input, target, _) in tqdm(enumerate(train_loader), total=len(train_loader)):
         # print("input ({}): ".format(input.size(), input))
         input = input.cuda()
         target = target.cuda()

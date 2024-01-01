@@ -95,7 +95,7 @@ def perpare_train(tk_path, embed_type, vec_path, embed_dim, out_dir):
 def train_model(model, train_loader, device, criterian, optimizer):
     model.train()
 
-    for i, ((sts, paths, eds), y, length) in tqdm(enumerate(train_loader)):
+    for i, ((sts, paths, eds), y, length) in tqdm(enumerate(train_loader), total=len(train_loader)):
         sts = sts.to(device)
         paths = paths.to(device)
         eds = eds.to(device)
@@ -142,12 +142,10 @@ def main(args):
     tk_path = args.tk_path
     train_path = args.train_data
     val_path = args.val_data
-    try: 
-        test_path1 = args.test_data1
-        test_path2 = args.test_data2
-        test_path3 = args.test_data3
-    except:
-        test_path = args.test_data
+    test_path1 = args.test_data1
+    test_path2 = args.test_data2
+    test_path3 = args.test_data3
+    test_path = args.test_data
     embed_dim = args.embed_dim
     embed_type = args.embed_type
     vec_path = args.embed_path
@@ -301,17 +299,25 @@ def main(args):
         optimizer = resume_checkpoint.optimizer
         start_epoch = resume_checkpoint.epoch
     else:
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()),
-            lr=lr,
-            weight_decay=weight_decay
+        # optimizer = torch.optim.Adam(
+        #     filter(lambda p: p.requires_grad, model.parameters()),
+        #     lr=lr,
+        #     weight_decay=weight_decay,
+        # )
+        optimizer = torch.optim.AdamW(
+            filter(lambda p: p.requires_grad, model.parameters()), 
+            lr=lr, 
+            weight_decay=weight_decay,
         )
         start_epoch = 1
 
     # Build test loader
     train_dataset = CodeLoader(train_path, max_size, token2index, tk2num)
     val_dataset = CodeLoader(val_path, max_size, token2index, tk2num)
-    try:
+    train_loader = DataLoader(train_dataset, batch_size=train_batch, collate_fn=my_collate)
+    val_loader = DataLoader(val_dataset, batch_size=train_batch, collate_fn=my_collate)
+    
+    if test_path is None:
         test_dataset1 = CodeLoader(test_path1, max_size, token2index, tk2num)
         test_dataset2 = CodeLoader(test_path2, max_size, token2index, tk2num)
         test_dataset3 = CodeLoader(test_path3, max_size, token2index, tk2num)
@@ -319,19 +325,14 @@ def main(args):
             len(train_dataset), len(val_dataset), len(test_dataset1), 
             len(test_dataset2), len(test_dataset3),
         ))
-    except:
+        test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
+        test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
+        test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
+    else:
         test_dataset = CodeLoader(test_path, max_size, token2index, tk2num)
         print('train data {}, val data {}, test data {}'.format(
             len(train_dataset), len(val_dataset), len(test_dataset),
         ))
-
-    train_loader = DataLoader(train_dataset, batch_size=train_batch, collate_fn=my_collate)
-    val_loader = DataLoader(val_dataset, batch_size=train_batch, collate_fn=my_collate)
-    try:
-        test_loader1 = DataLoader(test_dataset1, batch_size=train_batch, collate_fn=my_collate)
-        test_loader2 = DataLoader(test_dataset2, batch_size=train_batch, collate_fn=my_collate)
-        test_loader3 = DataLoader(test_dataset3, batch_size=train_batch, collate_fn=my_collate)
-    except:
         test_loader = DataLoader(test_dataset, batch_size=train_batch, collate_fn=my_collate)
 
     # training
@@ -345,12 +346,12 @@ def main(args):
         # print('max size: {}'.format(max_size))
         train_model(model, train_loader, device, criterian, optimizer)
         val_res = test_model(val_loader, model, device, index2func, 'val')
-        try:
+        if test_path is None:
             test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
             test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
             test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
             merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
-        except:
+        else:
             test_res = test_model(test_loader, model, device, index2func, 'test')
             merge_res = {**val_res, **test_res} # merge all the test results
         merge_res["epoch"] = epoch
@@ -372,6 +373,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    import random
     parser = argparse.ArgumentParser('')
     parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs to run')
     parser.add_argument('--batch', default=256, type=int, metavar='N', help='mini-batch size')
@@ -386,14 +388,15 @@ if __name__ == '__main__':
     parser.add_argument('--model_type', type=str, default='codebert', 
                         choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'codeberta', 'codegpt', 'codellama'], 
                         help='model architecture for method name prediction')
+    parser.add_argument('--ensemble_models', type=int, default=1, help='number of ensemble models')
     parser.add_argument('--embed_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')
     parser.add_argument('--train_data', type=str, default='data/java_pkl_files/train.pkl')
     parser.add_argument('--val_data', type=str, default='data/java_pkl_files/val.pkl')
-    parser.add_argument('--test_data', type=str, default='data/java_pkl_files/test.pkl')
-    # parser.add_argument('--test_data1', type=str, default='data/java_pkl_files/test1.pkl')
-    # parser.add_argument('--test_data2', type=str, default='data/java_pkl_files/test2.pkl')
-    # parser.add_argument('--test_data3', type=str, default='data/java_pkl_files/test3.pkl')
+    parser.add_argument('--test_data', type=str, default=None)
+    parser.add_argument('--test_data1', type=str, default=None)
+    parser.add_argument('--test_data2', type=str, default=None)
+    parser.add_argument('--test_data3', type=str, default=None)
     parser.add_argument('--tk_path', type=str, default='data/java_pkl_files/tk.pkl')
     parser.add_argument('--embed_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code summary')
@@ -405,4 +408,17 @@ if __name__ == '__main__':
     options = vars(args)
     print(options)
     # set_random_seed(10)
-    main(args)
+    
+    if args.ensemble_models > 1:
+        for i in range(args.ensemble_models):
+            # Optionally set a different seed for each training to ensure diversity
+            random.seed(i)
+            print(f'Training ensemble model {i} ...')
+            original_res_dir = args.res_dir
+            args.res_dir = os.path.join(original_res_dir, f'ensemble_model-{i}')
+            if not os.path.exists(args.res_dir):
+                os.makedirs(args.res_dir)
+            main(args)
+            args.res_dir = original_res_dir
+    else:
+        main(args)
