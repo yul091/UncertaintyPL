@@ -24,6 +24,8 @@ from models.code_analysis.model_cs import (
     CodeBert2Vec,
     CodeGPT2Vec,
     GraphCodeBert2Vec,
+    LlamaConfig,
+    CodeLlama2Vec,
 )
 
 
@@ -264,6 +266,30 @@ def main(args):
             n_embd=3*embed_dim,
         )
         model = CodeGPT2Vec([config_node, config_path, config_concat])
+    elif args.model_type == 'codellama':
+        pretrained_model = 'codellama/CodeLlama-7b-hf'
+        config_class = LlamaConfig
+        config_node = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=nodes_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_path = config_class.from_pretrained(
+            pretrained_model,
+            vocab_size=paths_dim, 
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=embed_dim,
+        )
+        config_concat = config_class.from_pretrained(
+            pretrained_model,
+            num_labels=output_dim, 
+            use_cache=False, 
+            hidden_size=3*embed_dim,
+        )
+        model = CodeLlama2Vec([config_node, config_path, config_concat])
         
 
     criterian = nn.CrossEntropyLoss()  # loss
@@ -358,7 +384,7 @@ if __name__ == '__main__':
     parser.add_argument('--mean_seq', default=False, action='store_true', help='use mean of rnn output')
     parser.add_argument('--clip', type=float, default=0.25, help='gradient clipping')
     parser.add_argument('--model_type', type=str, default='codebert', 
-                        choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'codeberta', 'codegpt'], 
+                        choices=['codebert', 'code2vec', 'lstm', 'graphcodebert', 'codeberta', 'codegpt', 'codellama'], 
                         help='model architecture for method name prediction')
     parser.add_argument('--embed_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')

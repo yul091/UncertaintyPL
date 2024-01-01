@@ -2,10 +2,11 @@ import pickle
 import json
 import os
 from tqdm import tqdm
+from typing import List, Dict, Tuple
 from preprocess.utils import BASEDICT
 
 
-def build_dict(dataset):
+def build_dict(dataset: List[str]):
     base_dict = BASEDICT.copy()
     token2index, path2index, func2index = base_dict.copy(), base_dict.copy(), base_dict.copy()
     for i, data in tqdm(enumerate(dataset)):
@@ -80,13 +81,13 @@ def main(DATA_DIR, DIR, suffix='.c2v'):
 
 if __name__ == '__main__':
     file_dict = {
-        # 'case_study': 'case_study'
+        'case_study': 'case_study',
         'different_author': 'different_author',
         'different_time': 'different_time',
         'different_project': 'different_project',
     }
     for FILENAME, GEN_FILE in file_dict.items():
-        TRG_DIR = 'dataset_new/code_summary' 
+        TRG_DIR = 'dataset/code_summary' 
         DIR = os.path.join(TRG_DIR, GEN_FILE)
         DATA_DIR = os.path.join(TRG_DIR, FILENAME)
         main(DATA_DIR, DIR, suffix='.c2v')
