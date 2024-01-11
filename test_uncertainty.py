@@ -27,11 +27,11 @@ if __name__ == '__main__':
         CodeCompletion_Module,
     ]
     MetricList = [
-        # Vanilla,
-        # ModelWithTemperature,
-        # PVScore,
-        # ModelActivateDropout,
-        # Mutation,
+        Vanilla,
+        ModelWithTemperature,
+        PVScore,
+        ModelActivateDropout,
+        Mutation,
         Ensemble,
     ]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     )
     for i, metric in enumerate(MetricList):
         print(f'metric name: {metric.__name__}')
-        if metric.__name__ == 'Ensemble':
+        if metric.__name__ == 'Ensemble' and ensemble_dirs is not None:
             print(f'ensemble dirs: {ensemble_dirs}')
             module_instances = [module_instance] + [
                 Module(

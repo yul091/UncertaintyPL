@@ -11,9 +11,9 @@ else
 fi
 
 DATA_DIR=dataset/code_summary/$SHIFT_TYPE
-EPOCHS=15
-BATCH=8
-LR=2e-5
+EPOCHS=20
+BATCH=5
+LR=1e-4
 TK_PATH=$DATA_DIR/tk.pkl
 TRAIN_DATA=$DATA_DIR/train.pkl # file for training dataset
 VAL_DATA=$DATA_DIR/val.pkl # file for validation dataset
@@ -38,4 +38,6 @@ CUDA_VISIBLE_DEVICES=3 python -B -m program_tasks.code_summary.main \
   --max_size ${MAX_SIZE} \
   --ensemble_models 5 \
   --embed_type ${EMBEDDING_TYPE} --experiment_name ${EXPERIMENT_NAME} \
+  --do_train --do_eval \
   --res_dir ${RES_DIR} | tee $EXPERIMENT_LOG
+ 

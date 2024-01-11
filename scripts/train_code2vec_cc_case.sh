@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
+MODEL_TYPE=code2vec # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -26,7 +26,7 @@ EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 echo $EXPERIMENT_NAME
 
 
-CUDA_VISIBLE_DEVICES=3 python -B -m program_tasks.code_completion.main \
+CUDA_VISIBLE_DEVICES=1 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data $TEST_DATA \
   --model_type $MODEL_TYPE \

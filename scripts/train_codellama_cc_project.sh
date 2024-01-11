@@ -35,6 +35,7 @@ CUDA_VISIBLE_DEVICES=1 python -B -m program_tasks.code_completion.main \
   --embedding_path $EMBEDDING_PATH \
   --embedding_type $EMBEDDING_TYPE \
   --embedding_dim $EMBEDDING_DIM \
+  --do_train --do_eval \
   --epochs $EPOCHS --batch_size $BATCH --lr $LR --res_dir $RES_DIR \
   --experiment_name $EXPERIMENT_NAME | tee $EXPERIMENT_LOG
 

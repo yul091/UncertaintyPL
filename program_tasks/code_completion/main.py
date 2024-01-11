@@ -131,6 +131,7 @@ def main(args):
     print('vocab size: {}, num of batches: {}'.format(vocab_size, len(train_loader)))
 
     # load ckpt if necessary
+    pretrained_model = None
     if args.load_ckpt:
         latest_checkpoint_path = Checkpoint.get_latest_checkpoint(args.res_dir)
         resume_checkpoint = Checkpoint.load(latest_checkpoint_path)
@@ -193,24 +194,52 @@ def main(args):
         start_epoch = 1
 
     model = model.cuda()
-    criterion = nn.CrossEntropyLoss()
+    
+    if args.do_train:
+        criterion = nn.CrossEntropyLoss()
+        print(f'Training dataset size: {train_loader.n_samples}')
+        time_cost = None
+        best_val_acc = 0
+        best_ckpt_dir = None
+        t1 = datetime.datetime.now()
 
-    print(f'Training dataset size: {train_loader.n_samples}')
-    time_cost = None
-    best_val_acc = 0
-    best_ckpt_dir = None
-    t1 = datetime.datetime.now()
+        for epoch in range(start_epoch, args.epochs + 1):
+            st = datetime.datetime.now()
+            train(train_loader, model, criterion, optimizer)
+            ed = datetime.datetime.now()
+            if time_cost is None:
+                time_cost = ed - st
+            else:
+                time_cost += (ed - st)
 
-    for epoch in range(start_epoch, args.epochs + 1):
-        st = datetime.datetime.now()
-        train(train_loader, model, criterion, optimizer)
-        ed = datetime.datetime.now()
-        if time_cost is None:
-            time_cost = ed - st
-        else:
-            time_cost += (ed - st)
+            print(epoch, 'cost time', ed - st)
+            res_val = test(val_loader, model, 'dev')
+            if args.test_data is None:
+                res1 = test(test_loader1, model, 'test1')
+                res2 = test(test_loader2, model, 'test2')
+                res3 = test(test_loader3, model, 'test3')
+                merge_res = {**res_val, **res1, **res2, **res3} # merge all the test results
+            else:
+                res_test = test(test_loader, model, 'test')
+                merge_res = {**res_val, **res_test}
+            print(merge_res)
 
-        print(epoch, 'cost time', ed - st)
+            # Save best model checkpoint
+            if res_val['dev acc'] > best_val_acc:
+                if best_ckpt_dir is not None:
+                    shutil.rmtree(best_ckpt_dir)
+                Checkpoint(model, optimizer, epoch, merge_res).save(args.res_dir)
+                best_val_acc = res_val['dev acc']
+                best_ckpt_dir = Checkpoint.get_latest_checkpoint(args.res_dir)
+
+        print('Avg time cost', time_cost / args.epochs)
+        t2 = datetime.datetime.now()
+        print('Total time cost', t2 - t1)
+    else:
+        print(f" ** Using zero-shot model {pretrained_model} for evaluation **")
+        
+    if args.do_eval:
+        model.eval()
         res_val = test(val_loader, model, 'dev')
         if args.test_data is None:
             res1 = test(test_loader1, model, 'test1')
@@ -221,19 +250,6 @@ def main(args):
             res_test = test(test_loader, model, 'test')
             merge_res = {**res_val, **res_test}
         print(merge_res)
-
-        # Save best model checkpoint
-        if res_val['dev acc'] > best_val_acc:
-            if best_ckpt_dir is not None:
-                shutil.rmtree(best_ckpt_dir)
-            Checkpoint(model, optimizer, epoch, merge_res).save(args.res_dir)
-            best_val_acc = res_val['dev acc']
-            best_ckpt_dir = Checkpoint.get_latest_checkpoint(args.res_dir)
-
-    print('Avg time cost', time_cost / args.epochs)
-    t2 = datetime.datetime.now()
-    print('Total time cost', t2 - t1)
-
 
 
 if __name__ == '__main__':
@@ -258,6 +274,8 @@ if __name__ == '__main__':
     parser.add_argument('--embedding_path', type=str, default='embedding_vec100_1/fasttext.vec')
     parser.add_argument('--ensemble_models', type=int, default=1, help='number of ensemble models')
     parser.add_argument('--train_data', type=str, default='data/code_completion/different_time/train.tsv',)
+    parser.add_argument('--do_train', action='store_true', help='do training')
+    parser.add_argument('--do_eval', action='store_true', help='do evaluation')
     parser.add_argument('--val_data', type=str, default='data/code_completion/different_time/dev.tsv', help='model name')
     parser.add_argument('--test_data', type=str, default=None, help='model name')
     parser.add_argument('--test_data1', type=str, default=None, help='model name')
@@ -265,7 +283,7 @@ if __name__ == '__main__':
     parser.add_argument('--test_data3', type=str, default=None, help='model name')
     parser.add_argument('--embedding_type', type=int, default=1, choices=[0, 1, 2])
     parser.add_argument('--experiment_name', type=str, default='code_completion')
-    parser.add_argument('--res_dir', type=str, default='results/code_completion')
+    parser.add_argument('--res_dir', type=str, default=None)
     parser.add_argument('--load_ckpt', default=False, action='store_true', help='use pretrained model')
     args = parser.parse_args()
 

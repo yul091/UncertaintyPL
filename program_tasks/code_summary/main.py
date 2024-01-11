@@ -160,6 +160,7 @@ def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # load data and preparation
+    pretrained_model = None
     token2index, path2index, func2index, embed, tk2num =\
         perpare_train(tk_path, embed_type, vec_path, embed_dim, out_dir)
     nodes_dim, paths_dim, output_dim = len(tk2num), len(path2index), len(func2index)
@@ -289,28 +290,6 @@ def main(args):
         )
         model = CodeLlama2Vec([config_node, config_path, config_concat])
         
-
-    criterian = nn.CrossEntropyLoss()  # loss
-    # load ckpt if necessary
-    if load_ckpt:
-        latest_checkpoint_path = Checkpoint.get_latest_checkpoint(out_dir)
-        resume_checkpoint = Checkpoint.load(latest_checkpoint_path)
-        model = resume_checkpoint.model
-        optimizer = resume_checkpoint.optimizer
-        start_epoch = resume_checkpoint.epoch
-    else:
-        # optimizer = torch.optim.Adam(
-        #     filter(lambda p: p.requires_grad, model.parameters()),
-        #     lr=lr,
-        #     weight_decay=weight_decay,
-        # )
-        optimizer = torch.optim.AdamW(
-            filter(lambda p: p.requires_grad, model.parameters()), 
-            lr=lr, 
-            weight_decay=weight_decay,
-        )
-        start_epoch = 1
-
     # Build test loader
     train_dataset = CodeLoader(train_path, max_size, token2index, tk2num)
     val_dataset = CodeLoader(val_path, max_size, token2index, tk2num)
@@ -334,17 +313,64 @@ def main(args):
             len(train_dataset), len(val_dataset), len(test_dataset),
         ))
         test_loader = DataLoader(test_dataset, batch_size=train_batch, collate_fn=my_collate)
+        
+    if args.do_train:
+        criterian = nn.CrossEntropyLoss()  # loss
+        # load ckpt if necessary
+        if load_ckpt:
+            latest_checkpoint_path = Checkpoint.get_latest_checkpoint(out_dir)
+            resume_checkpoint = Checkpoint.load(latest_checkpoint_path)
+            model = resume_checkpoint.model
+            optimizer = resume_checkpoint.optimizer
+            start_epoch = resume_checkpoint.epoch
+        else:
+            optimizer = torch.optim.AdamW(
+                filter(lambda p: p.requires_grad, model.parameters()), 
+                lr=lr, 
+                weight_decay=weight_decay,
+            )
+            start_epoch = 1
 
-    # training
-    print('begin training experiment {} ...'.format(experiment_name))
-    model.to(device)
-    best_val_acc = 0
-    best_ckpt_dir = None
-    total_st_time = datetime.datetime.now()
+        # training
+        print('begin training experiment {} ...'.format(experiment_name))
+        model.to(device)
+        best_val_acc = 0
+        best_ckpt_dir = None
+        total_st_time = datetime.datetime.now()
 
-    for epoch in range(start_epoch, epochs+1):
-        # print('max size: {}'.format(max_size))
-        train_model(model, train_loader, device, criterian, optimizer)
+        for epoch in range(start_epoch, epochs+1):
+            # print('max size: {}'.format(max_size))
+            train_model(model, train_loader, device, criterian, optimizer)
+            val_res = test_model(val_loader, model, device, index2func, 'val')
+            if test_path is None:
+                test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
+                test_res2 = test_model(test_loader2, model, device, index2func, 'test2')
+                test_res3 = test_model(test_loader3, model, device, index2func, 'test3')
+                merge_res = {**val_res, **test_res1, **test_res2, **test_res3} # merge all the test results
+            else:
+                test_res = test_model(test_loader, model, device, index2func, 'test')
+                merge_res = {**val_res, **test_res} # merge all the test results
+            merge_res["epoch"] = epoch
+            print(merge_res)
+
+            # Save model checkpoint
+            if val_res['val acc'] > best_val_acc:
+                if best_ckpt_dir is not None:
+                    shutil.rmtree(best_ckpt_dir)
+                Checkpoint(model, optimizer, epoch, merge_res).save(out_dir)
+                best_val_acc = val_res['val acc']
+                best_ckpt_dir = Checkpoint.get_latest_checkpoint(out_dir)
+
+        total_ed_time = datetime.datetime.now()
+        print('training experiment {} finished! Total cost time: {}'.format(
+            experiment_name, total_ed_time - total_st_time
+        ))
+    else:
+        print(f" ** Using zero-shot model {pretrained_model} for evaluation **")
+        
+    if args.do_eval:
+        model.to(device)
+        model.eval()
         val_res = test_model(val_loader, model, device, index2func, 'val')
         if test_path is None:
             test_res1 = test_model(test_loader1, model, device, index2func, 'test1')
@@ -354,21 +380,7 @@ def main(args):
         else:
             test_res = test_model(test_loader, model, device, index2func, 'test')
             merge_res = {**val_res, **test_res} # merge all the test results
-        merge_res["epoch"] = epoch
         print(merge_res)
-
-        # Save model checkpoint
-        if val_res['val acc'] > best_val_acc:
-            if best_ckpt_dir is not None:
-                shutil.rmtree(best_ckpt_dir)
-            Checkpoint(model, optimizer, epoch, merge_res).save(out_dir)
-            best_val_acc = val_res['val acc']
-            best_ckpt_dir = Checkpoint.get_latest_checkpoint(out_dir)
-
-    total_ed_time = datetime.datetime.now()
-    print('training experiment {} finished! Total cost time: {}'.format(
-        experiment_name, total_ed_time - total_st_time
-    ))
 
 
 
@@ -391,6 +403,8 @@ if __name__ == '__main__':
     parser.add_argument('--ensemble_models', type=int, default=1, help='number of ensemble models')
     parser.add_argument('--embed_dim', default=120, type=int, metavar='N', help='embedding size')
     parser.add_argument('--embed_path', type=str, default='vec/100_2/Doc2VecEmbedding0.vec')
+    parser.add_argument('--do_train', action='store_true', help='do training')
+    parser.add_argument('--do_eval', action='store_true', help='do evaluation')
     parser.add_argument('--train_data', type=str, default='data/java_pkl_files/train.pkl')
     parser.add_argument('--val_data', type=str, default='data/java_pkl_files/val.pkl')
     parser.add_argument('--test_data', type=str, default=None)

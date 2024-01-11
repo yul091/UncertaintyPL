@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
+MODEL_TYPE=codebert # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -27,7 +27,7 @@ EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 MAX_SIZE=20000 # number of training samples at each epoch
 
 # echo $EXPERIMENT_NAME
-CUDA_VISIBLE_DEVICES=6 python -B -m program_tasks.code_summary.main \
+CUDA_VISIBLE_DEVICES=5 python -B -m program_tasks.code_summary.main \
   --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
   --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} \
   --model_type ${MODEL_TYPE} \

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
+MODEL_TYPE=codegpt # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -20,14 +20,14 @@ VAL_DATA=$DATA_DIR/val.pkl # file for validation dataset
 TEST_DATA=$DATA_DIR/test.pkl # file for test dataset
 
 EMBEDDING_TYPE=1
-EMBEDDING_DIM=128 # dimension of embedding vectors
+EMBEDDING_DIM=120 # dimension of embedding vectors
 EMBEDDING_PATH=/ # file for pre-trained vectors
 EXPERIMENT_NAME=code_summary
 EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 MAX_SIZE=20000 # number of training samples at each epoch
 
 # echo $EXPERIMENT_NAME
-CUDA_VISIBLE_DEVICES=6 python -B -m program_tasks.code_summary.main \
+CUDA_VISIBLE_DEVICES=4 python -B -m program_tasks.code_summary.main \
   --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
   --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} \
   --model_type ${MODEL_TYPE} \

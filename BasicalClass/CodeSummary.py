@@ -11,20 +11,12 @@ from preprocess.checkpoint import Checkpoint
 class CodeSummary_Module(BasicModule):
 
     def __init__(
-        self, 
-        device, 
-        res_dir, 
-        save_dir, 
-        data_dir, 
-        module_id, 
-        train_batch_size, 
-        test_batch_size, 
-        max_size, 
-        load_poor=False
+        self, device, res_dir, save_dir, data_dir, module_id, 
+        train_batch_size, test_batch_size, max_size, load_poor=False,
     ):
         super(CodeSummary_Module, self).__init__(
             device, res_dir, save_dir, data_dir, module_id,
-            train_batch_size, test_batch_size, max_size, load_poor
+            train_batch_size, test_batch_size, max_size, load_poor,
         )
 
         if self.test_path is not None: # only on test test
@@ -36,6 +28,7 @@ class CodeSummary_Module(BasicModule):
         self.get_information()
         self.train_acc = common_cal_accuracy(self.train_pred_y, self.train_y)
         self.val_acc = common_cal_accuracy(self.val_pred_y, self.val_y)
+        
         if self.test_path is not None:
             self.test_acc = common_cal_accuracy(self.test_pred_y, self.test_y)
             self.save_truth()
@@ -87,24 +80,23 @@ class CodeSummary_Module(BasicModule):
 
         if self.test_path is not None:
             test_db = CodeLoader(self.test_path, self.max_size, token2index, tk2num)
-            print('train data {}, val data {}, test data {}'.format(
+            print('train data {}, dev data {}, test data {}'.format(
                 len(train_db), len(val_db), len(test_db)
             ))
             test_loader = DataLoader(
                 test_db, batch_size=self.test_batch_size, 
                 collate_fn=my_collate, shuffle=False
             )
-            print('train loader {}, val loader {}, test loader {}'.format(
+            print('train loader {}, dev loader {}, test loader {}'.format(
                 len(train_loader), len(val_loader), len(test_loader)
             ))
-
             return train_loader, val_loader, test_loader
 
         else:
             test_db1 = CodeLoader(self.test_path1, self.max_size, token2index, tk2num)
             test_db2 = CodeLoader(self.test_path2, self.max_size, token2index, tk2num)
             test_db3 = CodeLoader(self.test_path3, self.max_size, token2index, tk2num)
-            print('train data {}, val data {}, test data1 {}, test data2 {}, test data3 {}'.format(
+            print('train data {}, dev data {}, test data1 {}, test data2 {}, test data3 {}'.format(
                 len(train_db), len(val_db), len(test_db1), len(test_db2), len(test_db3)
             ))
             test_loader1 = DataLoader(
@@ -119,7 +111,7 @@ class CodeSummary_Module(BasicModule):
                 test_db3, batch_size=self.test_batch_size, 
                 collate_fn=my_collate, shuffle=False
             )
-            print('train loader {}, val loader {}, test loader1 {}, test loader2 {}, test loader3 {}'.format(
+            print('train loader {}, dev loader {}, test loader1 {}, test loader2 {}, test loader3 {}'.format(
                 len(train_loader), len(val_loader), len(test_loader1), len(test_loader2), len(test_loader3)
             ))
             return train_loader, val_loader, test_loader1, test_loader2, test_loader3

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
+MODEL_TYPE=codebert # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -19,18 +19,18 @@ VAL_DATA=$DATA_DIR/dev.tsv
 TEST_DATA=$DATA_DIR/test.tsv
 
 EMBEDDING_TYPE=1
-EMBEDDING_DIM=128 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
+EMBEDDING_DIM=120 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
 EMBEDDING_PATH=/ # file for pre-trained vectors
 EXPERIMENT_NAME=code_completion
 EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
 echo $EXPERIMENT_NAME
 
 
-CUDA_VISIBLE_DEVICES=3 python -B -m program_tasks.code_completion.main \
+CUDA_VISIBLE_DEVICES=1 python -B -m program_tasks.code_completion.main \
   --train_data $TRAIN_DATA --val_data $VAL_DATA \
   --test_data $TEST_DATA \
   --model_type $MODEL_TYPE \
-  --ensemble_models 5 \
+  --ensemble_models 2 \
   --embedding_path $EMBEDDING_PATH \
   --embedding_type $EMBEDDING_TYPE \
   --embedding_dim $EMBEDDING_DIM \

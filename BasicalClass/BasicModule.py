@@ -36,7 +36,7 @@ class BasicModule:
                 self.test_path2 = os.path.join(data_dir, 'test2.pkl')
                 self.test_path3 = os.path.join(data_dir, 'test3.pkl')
                 
-            self.val_path = os.path.join(data_dir, 'dev.pkl')
+            self.val_path = os.path.join(data_dir, 'val.pkl')
 
         elif module_id == 1: # code completion
             self.tk_path = None

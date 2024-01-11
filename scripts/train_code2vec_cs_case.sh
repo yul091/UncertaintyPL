@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
+MODEL_TYPE=code2vec # codeberta, code2vec, graphcodebert, codebert, codegpt, lstm
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_summary/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -12,7 +12,7 @@ fi
 
 DATA_DIR=dataset/code_summary/$SHIFT_TYPE
 EPOCHS=20
-BATCH=5
+BATCH=64
 LR=1e-4
 TK_PATH=$DATA_DIR/tk.pkl
 TRAIN_DATA=$DATA_DIR/train.pkl # file for training dataset

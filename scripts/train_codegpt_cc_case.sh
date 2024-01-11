@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODEL_TYPE=codellama # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
+MODEL_TYPE=codegpt # codebert, codegpt, lstm, code2vec, codeberta, graphcodebert, codellama
 SHIFT_TYPE=case_study # different_project, different_author, different_time, case_study
 RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
 
@@ -19,7 +19,7 @@ VAL_DATA=$DATA_DIR/dev.tsv
 TEST_DATA=$DATA_DIR/test.tsv
 
 EMBEDDING_TYPE=1
-EMBEDDING_DIM=128 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
+EMBEDDING_DIM=120 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
 EMBEDDING_PATH=/ # file for pre-trained vectors
 EXPERIMENT_NAME=code_completion
 EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'
