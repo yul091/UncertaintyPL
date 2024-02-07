@@ -15,13 +15,14 @@ else
   echo dir exist
 fi
 
-for MODEL_TYPE in code2vec codebert codegpt; do
+for MODEL_TYPE in codebert; do
   RES_DIR=results/code_completion/$SHIFT_TYPE/$MODEL_TYPE
   SAVE_DIR=Uncertainty_Results/$SHIFT_TYPE/$MODEL_TYPE
   EXPERIMENT_LOG=$LOG_DIR/$MODEL_TYPE'.txt'
   for dir in "${RES_DIR}"/ensemble_model-*; do
       # Check if it's indeed a directory
-      if [ -d "$dir" ]; then
+      # if [ -d "$dir" ]; then
+      if [ -d "$dir" ] && [ "$(basename "$dir")" != "ensemble_model-0" ]; then
           # Append to the ENSEMBLE_DIRS string, separated by space
           ENSEMBLE_DIRS="${ENSEMBLE_DIRS} ${dir}"
       fi
@@ -33,8 +34,8 @@ for MODEL_TYPE in code2vec codebert codegpt; do
     echo dir exist
   fi
 
-  CUDA_VISIBLE_DEVICES=7 python test_uncertainty.py \
-    --module_id $MODULE_ID --res_dir $RES_DIR \
+  CUDA_VISIBLE_DEVICES=3 python test_uncertainty.py \
+    --module_id $MODULE_ID --res_dir $RES_DIR/ensemble_model-0 \
     --data_dir $DATA_DIR --save_dir $SAVE_DIR \
     --train_batch_size $TRAIN_BATCH_SIZE \
     --test_batch_size $TEST_BATCH_SIZE \
