@@ -21,7 +21,7 @@ TEST_DATA2=$DATA_DIR/test2.tsv
 TEST_DATA3=$DATA_DIR/test3.tsv
 
 EMBEDDING_TYPE=1
-EMBEDDING_DIM=128 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
+EMBEDDING_DIM=256 # dimension of vectors (must be divisible by num_heads: 32 for codellama, 12 for codegpt)
 EMBEDDING_PATH=/ # file for pre-trained vectors
 EXPERIMENT_NAME=code_completion
 EXPERIMENT_LOG=$RES_DIR/$EXPERIMENT_NAME'.txt'

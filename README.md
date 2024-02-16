@@ -1,7 +1,7 @@
-# UncertaintyPL
-An Impact Study of Data Shift Towards Code Analysis Model and Uncertainty Measurement:
+# Uncertainty Awareness of LLMs in Code Analysis
+Uncertainty Awareness of Large Language Models Under Code Distribution Shifts: A Benchmark Study
 
-This is a PyTorch implementation of two code analysis tasks, namely, method name prediction~(MNP) and code completion~(CC) with six models. We use Python extractors to preprocess the raw code snippets. Users may further extend the work to other programming languages following our study.
+A PyTorch implementation of two code analysis tasks, code summarization~(CS) and code completion~(CC) with four models. We use Python extractors to preprocess the raw code snippets. Users may further extend the work to other programming languages following our study.
 
 <p align="center">
   <img src="Figure/code_shift.png" width="70%" height="70%">
@@ -31,38 +31,72 @@ pip install -r requirements.txt
 git clone https://github.com/yul091/UncertaintyPL.git
 cd UncertaintyPL
 ```
-### Step 1: Download the preprocessed Java-small dataset (~60 K examples, compressed: 84MB) and Python150k dataset for OOD detection (~150 K examples, compressed: 526MB)
-```
-wget https://s3.amazonaws.com/code2seq/datasets/java-small.tar.gz
-tar -xvzf java-small.tar.gz
-wget http://files.srl.inf.ethz.ch/data/py150.tar.gz
-tar -xzvf py150.tar.gz
-```
-### Step 2: Training a model
-#### Training a model from scratch
+### Step 1: Download our preprocessed [datasets](https://drive.google.com/file/d/1wMH6VrnkzIRMUQCGpcj--bgLTYane6zu/view?usp=sharing)
+
+### Step 2: Fine-tuning a model
 To train a model from scratch:
-- Edit the file [scripts/train_cs.sh](scripts/train_cs.sh) and file [scripts/train_cc.sh](scripts/train_cc.sh) to point to the right preprocessed data and a specific model archiecture.
-- Before training, you can edit the configuration hyper-parameters in these two files.
-- Run the two shell scripts:
+- Code summarization:
 ```
-bash scripts/train_cs.sh # code summary
-bash scripts/train_cc.sh # code completion
+python -B -m program_tasks.code_summary.main \
+  --tk_path ${TK_PATH} --epochs ${EPOCHS} --batch ${BATCH} --lr ${LR} \
+  --embed_dim ${EMBEDDING_DIM} --embed_path ${EMBEDDING_PATH} \
+  --model_type ${MODEL_TYPE} \
+  --train_data ${TRAIN_DATA} \
+  --val_data ${VAL_DATA} \
+  --test_data ${TEST_DATA} \
+  --max_size ${MAX_SIZE} \
+  --ensemble_models 5 \
+  --do_train --do_eval \
+  --embed_type ${EMBEDDING_TYPE} \
+  --experiment_name ${EXPERIMENT_NAME} \
+  --res_dir ${RES_DIR} | tee $EXPERIMENT_LOG
 ```
-### Step 3: Measuring the five uncertainty scores
-- Edit the file [scripts/get_uncertainty.sh](scripts/get_uncertainty.sh) to point to the right preprocessed data, a specific task and a specific model.
-- Run the script [scripts/get_uncertainty.sh](scripts/get_uncertainty.sh):
+- Code completion:
 ```
-bash scripts/get_uncertainty.sh
+python -B -m program_tasks.code_completion.main \
+  --train_data $TRAIN_DATA --val_data $VAL_DATA --test_data $TEST_DATA \
+  --model_type $MODEL_TYPE \
+  --ensemble_models 5 \
+  --embedding_path $EMBEDDING_PATH \
+  --embedding_type $EMBEDDING_TYPE \
+  --embedding_dim $EMBEDDING_DIM \
+  --do_train --do_eval \
+  --epochs $EPOCHS --batch_size $BATCH --lr $LR --res_dir $RES_DIR \
+  --experiment_name $EXPERIMENT_NAME | tee $EXPERIMENT_LOG
 ```
-### Step 4: Evaluation the effectiveness of the five uncertainty methods on both error/success prediction and in-/out-of-distribution detection:
-- Edit the file [Uncertainty_Eval/evaluation.py](Uncertainty_Eval/evaluation.py) to point to the target evaluation choice (error/success prediction or in-/out-of-distribution detection).
-- Run the script [Uncertainty_Eval/evaluation.py](Uncertainty_Eval/evaluation.py):
+### Step 3: Calibrating the model and quantifying the uncertainty scores
 ```
-python Uncertainty_Eval/evaluation.py
+python test_uncertainty.py \
+  --module_id $MODULE_ID --res_dir $RES_DIR \
+  --data_dir $DATA_DIR --save_dir $SAVE_DIR \
+  --train_batch_size $TRAIN_BATCH_SIZE \
+  --test_batch_size $TEST_BATCH_SIZE \
+  --ensemble_dirs $ENSEMBLE_DIRS \
+  --max_size $MAX_SIZE | tee $EXPERIMENT_LOG
 ```
-### Step 5: Evaluation the effectiveness of the five uncertainty methods on input validation:
-- Edit the file [filter.py](filter.py) to point to the right preprocessed data, a specific task and a specific model.
-- Run the script [filter.py](filter.py):
+### Step 4: Evaluation the effectiveness of different UE techniques:
+- Misclassification detection:
 ```
-python filter.py
+python -B -m Uncertainty_Eval.evaluation \
+  --shift_type $SHIFT \
+  --task $TASK \
+  --model $MODEL | tee $EXPERIMENT_LOG
+```
+- Selective prediction:
+```
+python input_validation.py \
+  --shift_type $SHIFT \
+  --task $TASK \
+  --model $MODEL \
+  --uncertainty_dir $METRICDIR \
+  --out_dir $OUTDIR \
+  --strategy coverage
+```
+- OOD detection:
+```
+python -B -m Uncertainty_Eval.evaluation \
+  --shift_type $SHIFT \
+  --task $TASK \
+  --ood \
+  --model $MODEL | tee $EXPERIMENT_LOG
 ```

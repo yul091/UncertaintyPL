@@ -146,7 +146,7 @@ def main(args):
             pretrained_model = 'microsoft/codebert-base'
             config = config_class.from_pretrained(
                 pretrained_model, num_labels=vocab_size, 
-                use_cache=False, hidden_size=args.embedding_dim,
+                use_cache=False, 
             )
             model = CodeBertForClassification(config)
         elif args.model_type == 'codegpt':
@@ -154,7 +154,7 @@ def main(args):
             pretrained_model = 'microsoft/CodeGPT-small-java-adaptedGPT2'
             config = config_class.from_pretrained(
                 pretrained_model, num_labels=vocab_size, 
-                use_cache=False, n_embd=args.embedding_dim,
+                use_cache=False
             )
             model = CodeGPTForClassification(config)
         elif args.model_type == 'code2vec':
@@ -164,7 +164,7 @@ def main(args):
             pretrained_model = 'huggingface/CodeBERTa-small-v1'
             config = config_class.from_pretrained(
                 pretrained_model, num_labels=vocab_size, 
-                use_cache=False, hidden_size=args.embedding_dim,
+                use_cache=False
             )
             model = CodeBertaForClassification(config)
         elif args.model_type == 'graphcodebert':
@@ -172,7 +172,7 @@ def main(args):
             pretrained_model = 'microsoft/graphcodebert-base'
             config = config_class.from_pretrained(
                 pretrained_model, num_labels=vocab_size, 
-                use_cache=False, hidden_size=args.embedding_dim,
+                use_cache=False
             )
             model = GraphCodeBertForClassification(config)
         elif args.model_type == 'codellama':
@@ -180,9 +180,9 @@ def main(args):
             pretrained_model = 'codellama/CodeLlama-7b-hf'
             config = config_class.from_pretrained(
                 pretrained_model, num_labels=vocab_size, 
-                use_cache=False, hidden_size=args.embedding_dim,
+                use_cache=False
             )
-            model = CodeLlamaForClassification(config)
+            model = CodeLlamaForClassification(config).half()
         else:
             raise TypeError('Undefined Model Type!')
         

@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
 from transformers import (
+    RobertaConfig,
     RobertaModel, 
     RobertaPreTrainedModel,
+    GPT2Config,
     GPT2Model,
     GPT2PreTrainedModel,
+    LlamaConfig,
     LlamaModel, 
     LlamaPreTrainedModel,
 )
@@ -88,7 +91,7 @@ class BiLSTMForClassification(nn.Module):
 class CodeBertForClassification(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config, dropout=0.1):
+    def __init__(self, config: RobertaConfig, dropout=0.1):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -98,8 +101,8 @@ class CodeBertForClassification(RobertaPreTrainedModel):
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         self.sub_num = [1]
         self.init_weights()
-        print('Created {} with {:,} params:\n{}'.format(
-            self.__class__.__name__, count_parameters(self), self
+        print('Created {} of {} heads with {:,} params:\n{}'.format(
+            self.__class__.__name__, config.num_attention_heads, self.num_parameters(), self
         ))
             
     def forward(self, input_ids):
@@ -121,7 +124,7 @@ class CodeBertForClassification(RobertaPreTrainedModel):
 class GraphCodeBertForClassification(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config, dropout=0.1):
+    def __init__(self, config: RobertaConfig, dropout=0.1):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -131,8 +134,8 @@ class GraphCodeBertForClassification(RobertaPreTrainedModel):
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         self.sub_num = [1]
         self.init_weights()
-        print('Created {} with {:,} params:\n{}'.format(
-            self.__class__.__name__, count_parameters(self), self
+        print('Created {} of {} heads with {:,} params:\n{}'.format(
+            self.__class__.__name__, config.num_attention_heads, self.num_parameters(), self
         ))
             
     def forward(self, input_ids):
@@ -154,7 +157,7 @@ class GraphCodeBertForClassification(RobertaPreTrainedModel):
 class CodeBertaForClassification(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"position_ids"]
     
-    def __init__(self, config, dropout=0.1):
+    def __init__(self, config: RobertaConfig, dropout=0.1):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -164,8 +167,8 @@ class CodeBertaForClassification(RobertaPreTrainedModel):
         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         self.sub_num = [1]
         self.init_weights()
-        print('Created {} with {:,} params:\n{}'.format(
-            self.__class__.__name__, count_parameters(self), self
+        print('Created {} of {} heads with {:,} params:\n{}'.format(
+            self.__class__.__name__, config.num_attention_heads, self.num_parameters(), self
         ))
             
     def forward(self, input_ids):
@@ -187,7 +190,7 @@ class CodeBertaForClassification(RobertaPreTrainedModel):
 class CodeGPTForClassification(GPT2PreTrainedModel):
     _keys_to_ignore_on_load_missing = [r"h\.\d+\.attn\.masked_bias", r"lm_head.weight"]
     
-    def __init__(self, config, dropout: float = 0.1):
+    def __init__(self, config: GPT2Config, dropout: float = 0.1):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.config = config
@@ -195,8 +198,8 @@ class CodeGPTForClassification(GPT2PreTrainedModel):
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(config.n_embd, self.num_labels, bias=False)
         self.sub_num = [1]
-        print('Created {} with {:,} params:\n{}'.format(
-            self.__class__.__name__, count_parameters(self), self
+        print('Created {} of {} heads with {:,} params:\n{}'.format(
+            self.__class__.__name__, config.num_attention_heads, self.num_parameters(), self
         ))
         
         # Initialize weights and apply final processing
@@ -231,14 +234,14 @@ class CodeGPTForClassification(GPT2PreTrainedModel):
     
     
 class CodeLlamaForClassification(LlamaPreTrainedModel):
-    def __init__(self, config):
+    def __init__(self, config: LlamaConfig):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.model = LlamaModel(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
         self.sub_num = [1, 3, 5, 7, 9]
-        print('Created {} with {:,} params:\n{}'.format(
-            self.__class__.__name__, count_parameters(self), self
+        print('Created {} of {} heads with {:,} params:\n{}'.format(
+            self.__class__.__name__, config.num_attention_heads, self.num_parameters(), self
         ))
         # Initialize weights and apply final processing
         self.post_init()

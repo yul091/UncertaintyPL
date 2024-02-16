@@ -273,22 +273,22 @@ def main(args):
             vocab_size=nodes_dim, 
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=embed_dim,
+            # hidden_size=embed_dim,
         )
         config_path = config_class.from_pretrained(
             pretrained_model,
             vocab_size=paths_dim, 
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=embed_dim,
+            # hidden_size=embed_dim,
         )
         config_concat = config_class.from_pretrained(
             pretrained_model,
             num_labels=output_dim, 
             use_cache=False, 
-            hidden_size=3*embed_dim,
+            # hidden_size=3*embed_dim,
         )
-        model = CodeLlama2Vec([config_node, config_path, config_concat])
+        model = CodeLlama2Vec([config_node, config_path, config_concat]).half()
         
     # Build test loader
     train_dataset = CodeLoader(train_path, max_size, token2index, tk2num)
